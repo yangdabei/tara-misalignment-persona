@@ -29,6 +29,12 @@ class SteeringHook:
     coefficient reads as a fraction of the hidden-state norm (ARENA 4.1 convention).
     Sensible values are ~0.2-1.0 (ARENA sweeps [0.2, 0.4, 0.6, 0.8, 1.0]); a coef
     much above 1 swamps the residual stream and produces incoherent output.
+
+    apply_to_all_tokens=False steers only the last position — with KV-cached
+    generation that means each newly generated token. This is the configuration
+    ARENA's steering sweep validates; True additionally steers every prompt token,
+    including Qwen's massive-norm attention-sink token, which can break coherence
+    at any coefficient.
     """
 
     def __init__(
