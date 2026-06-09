@@ -149,13 +149,14 @@ Source column names the merged notebook (and the original stage prefix on the re
 - `ModelOrganismsForEM/bad-medical-advice` dataset name — verify exact HF id (notebook 03,
   EMFineTuneConfig.dataset_repo). The trainer expects a "messages" chat column; adapt
   _tokenize_dataset if the schema differs.
-- EM training-checkpoint repo — UPDATE (session 2): the EM adapter repo
-  `ModelOrganismsForEM/Qwen2.5-14B-Instruct_R1_3_3_3_full_train` DOES contain a `checkpoints/`
-  subfolder. Notebook 01 stage-02 currently tries two *separate* candidate checkpoint repos
-  (CANDIDATE_CHECKPOINT_REPOS in build_nb02.py) and falls back to adapter-interpolation if
-  neither resolves. Next session should inspect that checkpoints/ subfolder layout on HF and,
-  if it holds per-step adapters, point the monitor at it for REAL (not interpolated) lead-time
-  numbers. Until then lead-time is approximate — document which path was used.
+- EM training-checkpoint repo — RESOLVED (session 3): the adapter repo
+  `ModelOrganismsForEM/Qwen2.5-14B-Instruct_R1_3_3_3_full_train` ships 88 per-step PEFT
+  adapters under `checkpoints/checkpoint-<N>/` (steps 1–396, every step to 10 then every 5;
+  same safetensors key layout as the final adapter; B-norm grows 0.019@40 → 0.049@final).
+  build_nb02.py now discovers steps from that repo and the switcher hf_hub_downloads each
+  step's adapter_model.safetensors and copies the weights into the live PEFT modules
+  (PEFT load_adapter can't overwrite an existing adapter name). Step 0 = B weights zeroed.
+  Interpolation remains only as a fallback if the listing fails. Lead-time numbers are REAL.
 - Assistant Axis HF file layout — load_hf_assistant_axis() tries several filenames; if it
   raises, inspect the repo listing (cell prints it in notebook 04) and extend `candidates`.
 - Gemma EM organism — none assumed public; notebook 04 derives the EM direction via contrastive
