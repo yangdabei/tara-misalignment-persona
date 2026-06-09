@@ -300,4 +300,6 @@ print("Saved 06_robustness_results.json")\
     ),
 ]
 
-write_notebook("06_adversarial_capping_robustness.ipynb", cells)
+
+if __name__ == "__main__":
+    write_notebook("06_adversarial_capping_robustness.ipynb", cells)

@@ -14,7 +14,10 @@ Active phase: Phase 3 complete. Scaffold done; next phase is running notebooks o
 - [x] 1.8 src/monitoring/checkpoint_monitor.py — per-checkpoint logging, lead-time, ROC, plots
 - [x] 1.9 src/finetuning/lora_trainer.py — EMFineTuneConfig, 9-adapter LoRA, capping-aware training loop
 - [x] 1.10 tests/ — test_directions.py + test_hooks.py (14 tests, all passing)
-- [x] 2.1–2.7 All 7 Colab notebooks (built via scripts/build_nbXX.py)
+- [x] 2.1–2.7 Seven granular notebook stages (scripts/build_nbXX.py)
+- [x] 2.8 Merged into 3 model-grouped notebooks (scripts/build_merged.py):
+      01_qwen_analysis (00+01+02), 02_qwen_capping_finetune (03),
+      03_gemma_geometry_robustness (04+05+06). One model load per Colab session.
 - [x] 3.1 results/README.md — file → notebook → figure mapping
 - [x] 3.2 This final PROGRESS.md update
 - [x] 3.3 git tag v1.0 (see Files/commits)
@@ -82,6 +85,8 @@ Nothing pending in the scaffold. The next session runs the notebooks on Colab in
 - notebooks/00..06 (generated)
 
 ## Next agent: start here
-Load PROGRESS.md. The scaffold is complete and tagged v1.0. Begin the execution phase:
-set the real repo clone URL in scripts/nb_common.py, re-run the builders, then run
-notebooks/00_setup_and_sanity.ipynb on a Colab A100 and confirm the baseline EM rate (~11%).
+Load PROGRESS.md. The scaffold is complete and tagged v1.0; notebooks are now 3
+model-grouped files. Begin the execution phase: set the real repo clone URL in
+scripts/nb_common.py (SETUP_CELL placeholder), re-run `python scripts/build_merged.py`,
+push, then run notebooks/01_qwen_analysis.ipynb on a Colab A100 and confirm the
+baseline EM rate (~11%). Run order: 01 → 02 → 03.

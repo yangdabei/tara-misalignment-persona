@@ -248,4 +248,6 @@ print("Saved 05_geometry_results.json and 05_all_directions.pt")\
     ),
 ]
 
-write_notebook("05_unified_geometry_map.ipynb", cells)
+
+if __name__ == "__main__":
+    write_notebook("05_unified_geometry_map.ipynb", cells)

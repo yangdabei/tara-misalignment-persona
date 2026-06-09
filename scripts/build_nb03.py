@@ -367,4 +367,6 @@ print("\\nSaved 03_pareto_capping.json")\
     ),
 ]
 
-write_notebook("03_capping_during_finetuning.ipynb", cells)
+
+if __name__ == "__main__":
+    write_notebook("03_capping_during_finetuning.ipynb", cells)

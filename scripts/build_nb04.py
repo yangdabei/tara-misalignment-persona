@@ -254,4 +254,6 @@ print(f"cos(EM direction, Assistant Axis) @ layer 22 = {cos:+.3f}")\
     ),
 ]
 
-write_notebook("04_assistant_axis_extraction.ipynb", cells)
+
+if __name__ == "__main__":
+    write_notebook("04_assistant_axis_extraction.ipynb", cells)

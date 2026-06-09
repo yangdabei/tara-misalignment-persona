@@ -247,4 +247,6 @@ print("Saved 02_roc_auc.json")\
     ),
 ]
 
-write_notebook("02_checkpoint_monitoring.ipynb", cells)
+
+if __name__ == "__main__":
+    write_notebook("02_checkpoint_monitoring.ipynb", cells)

@@ -122,4 +122,6 @@ print(f"Saved {out_path}")\
     ),
 ]
 
-write_notebook("00_setup_and_sanity.ipynb", cells)
+
+if __name__ == "__main__":
+    write_notebook("00_setup_and_sanity.ipynb", cells)

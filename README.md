@@ -63,19 +63,22 @@ capping under an adaptive greedy-suffix attack.
 2. Copy `.env.example` to `.env` and fill in `OPENROUTER_API_KEY` and `HF_TOKEN`
    (on Colab, use Colab Secrets with the same names instead).
 
-3. Run the notebooks **in order** on a Colab A100 runtime:
+3. Run the notebooks **in order** on a Colab A100 runtime. There are three
+   notebooks, grouped so each Colab session loads exactly one model:
 
    | Notebook | Model | Purpose |
    |---|---|---|
-   | `00_setup_and_sanity` | Qwen2.5-14B | Load models, baseline EM rate (~11% for R1 organism) |
-   | `01_em_organism_baseline` | Qwen2.5-14B | Extract EM mean-diff direction, verify by steering |
-   | `02_checkpoint_monitoring` | Qwen2.5-14B | Projection probes across checkpoints, lead-time analysis |
-   | `03_capping_during_finetuning` | Qwen2.5-14B | ⚠️ A100-80GB, 4–6 h. Baseline vs capped fine-tuning |
-   | `04_assistant_axis_extraction` | Gemma-2-27B | Load/validate Assistant Axis, extract EM direction |
-   | `05_unified_geometry_map` | Gemma-2-27B | **Centrepiece**: 4×4 cosine heatmap, principal angles, causal test |
-   | `06_adversarial_capping_robustness` | Gemma-2-27B | Static vs adaptive jailbreak, dual-direction capping |
+   | `01_qwen_analysis` | Qwen2.5-14B | Setup & sanity (baseline EM ~11%) → extract & verify the EM mean-diff direction → checkpoint monitoring + lead-time/ROC. Produces the EM direction and Assistant Axis that notebook 02 consumes. |
+   | `02_qwen_capping_finetune` | Qwen2.5-14B | ⚠️ A100-80GB, ~4–6 h. Baseline vs capping-during-training vs capping-at-inference; Pareto table. Run as its own session. |
+   | `03_gemma_geometry_robustness` | Gemma-2-27B | Assistant Axis + Gemma EM direction → **centrepiece** 4×4 cosine heatmap, principal angle, causal test → adversarial capping robustness (static vs adaptive, single vs dual cap). |
 
-   All results persist to `/content/drive/MyDrive/tara_project/results/`.
+   Each notebook is **resumable**: it mounts Drive, and a quick-resume cell skips any
+   stage whose outputs already exist, so a runtime disconnect just means re-running top
+   to bottom. Figures display inline (save them manually on a temporary runtime); all
+   JSON/`.pt` outputs persist to `/content/drive/MyDrive/tara_project/results/`.
+
+   The notebooks are generated artifacts — edit `scripts/build_nbXX.py` (granular stages)
+   and re-run `python scripts/build_merged.py` rather than editing the `.ipynb` directly.
 
 ## Expected results
 

@@ -247,4 +247,6 @@ print("Saved 01_direction_comparisons.json")\
     ),
 ]
 
-write_notebook("01_em_organism_baseline.ipynb", cells)
+
+if __name__ == "__main__":
+    write_notebook("01_em_organism_baseline.ipynb", cells)
