@@ -1,6 +1,7 @@
 torch>=2.3.0
 transformers>=4.45.0
-peft>=0.12.0,<0.15.0  # <0.15 avoids the torchao>0.16 import-floor that clashes with Colab's torchao 0.10
+peft>=0.15.0  # needs huggingface_hub 1.x (older peft passes removed use_auth_token kwarg)
+torchao>=0.16.0  # peft>=0.15 enforces this at import; Colab preinstalls 0.10
 accelerate>=0.34.0
 bitsandbytes>=0.43.0
 datasets>=2.20.0
