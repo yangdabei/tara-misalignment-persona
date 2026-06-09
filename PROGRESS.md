@@ -104,9 +104,16 @@ session continues running notebook 01 from the model-load cell onward.
       steering cell (also delete 01_direction_comparisons.json if it was written).
 
 ## Currently in progress (or next to start)
-Running notebook 01 on Colab. Got past setup + the two load-time errors; the immediate next
-step is to re-run the model-load cell (now that peft/torchao are pinned) and confirm the
-EM organism loads, then proceed through the rest of notebook 01.
+Running notebook 01 on Colab, mid-way through stage 01. The steering verification now WORKS
+(see Key numerical results: inverted-U, peak 29.2% EM at coef 0.4 — Soligo/ARENA-consistent;
+the EM rate falls again at high coef because steering degrades coherence and EM requires
+coherence > 0.5). The live session ran with the session-3 fixes applied as in-session patches
+(per-question-balanced 17-pair direction, apply_to_all_tokens=False, coefs 0-1.0); the good
+sweep + balanced directions are saved to Drive. Remaining in notebook 01: re-run the plot
+cell (saves 01_steering_verification.png), the LoRA-B comparison cell (expect cos ~±0.04),
+the save-comparisons cell, then stage 02 (Assistant Axis + checkpoint monitoring).
+For publishable numbers, regenerate the judged set at n_samples=50 (committed default) —
+the 17-pair direction and n=24-per-coef sweep are noisy (binomial ±~9% at the peak).
 
 ## Pending tasks (ordered) — execution phase
 - [ ] In the active Colab session: `cd` into the Drive clone, `git pull` (to get the
@@ -125,6 +132,9 @@ Source column names the merged notebook (and the original stage prefix on the re
 | Metric | Value | Source notebook (stage) |
 |---|---|---|
 | Baseline EM rate (R1 model) | TBD | 01_qwen_analysis (00) |
+| Steering verification: peak EM rate (base model, L24 mean-diff, all_tokens=False) | 29.2% @ coef 0.4 (25.0% @ 0.6, 12.5% @ 0.8, 4.2% @ 1.0; 0% @ 0/0.2; n=24/coef) | 01_qwen_analysis (01) |
+| Split-half cosine of mean-diff direction (L24, 17 balanced pairs) | 0.647 | 01_qwen_analysis (01) |
+| cos(mean-diff L24, released TRAINED vector) — low EXPECTED (B-vector mystery) | 0.020 | 01_qwen_analysis (01) |
 | EM direction vs. Assistant Axis cosine (layer 24, Qwen2.5-14B) | TBD | 01_qwen_analysis (02) |
 | EM direction vs. Assistant Axis cosine (layer 22, Gemma-2-27B) | TBD | 03_gemma_geometry_robustness (05) |
 | Lead time: EM direction probe vs. behavioural eval (steps) | TBD | 01_qwen_analysis (02) |
