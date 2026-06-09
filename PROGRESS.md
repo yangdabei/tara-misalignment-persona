@@ -14,9 +14,10 @@ Active phase: Phase 3 complete. Scaffold done; next phase is running notebooks o
 - [x] 1.8 src/monitoring/checkpoint_monitor.py — per-checkpoint logging, lead-time, ROC, plots
 - [x] 1.9 src/finetuning/lora_trainer.py — EMFineTuneConfig, 9-adapter LoRA, capping-aware training loop
 - [x] 1.10 tests/ — test_directions.py + test_hooks.py (14 tests, all passing)
-- [x] 2.1–2.7 Seven granular notebook stages (scripts/build_nbXX.py)
-- [x] 2.8 Merged into 3 model-grouped notebooks (scripts/build_merged.py):
-      01_qwen_analysis (00+01+02), 02_qwen_capping_finetune (03),
+- [x] 2.1–2.7 Seven per-stage cell libraries (scripts/build_nb00.py … build_nb06.py).
+      These are import-only: each exposes a module-level `cells` list and writes nothing.
+- [x] 2.8 Single build entry point scripts/build_merged.py composes them into exactly 3
+      model-grouped notebooks: 01_qwen_analysis (00+01+02), 02_qwen_capping_finetune (03),
       03_gemma_geometry_robustness (04+05+06). One model load per Colab session.
 - [x] 3.1 results/README.md — file → notebook → figure mapping
 - [x] 3.2 This final PROGRESS.md update
@@ -27,9 +28,10 @@ Active phase: Phase 3 complete. Scaffold done; next phase is running notebooks o
 - `pytest tests/` → 14 passed.
 - CheckpointMonitor lead-time/ROC smoke-tested with synthetic data (probes lead correctly,
   AUC computed, from_log round-trips).
-- All 7 notebooks: valid nbformat-4 JSON; every code cell compiles (Colab magics treated as
-  statements). Notebooks are generated artifacts — edit scripts/build_nbXX.py and re-run, not
-  the .ipynb directly.
+- All 3 merged notebooks: valid nbformat-4 JSON; every code cell compiles (Colab magics
+  treated as statements). They are generated artifacts — edit the per-stage cell library
+  (scripts/build_nb00.py … build_nb06.py) and re-run scripts/build_merged.py, not the
+  .ipynb directly. build_merged.py is the only script that writes notebooks.
 
 ## Currently in progress (or next to start)
 Nothing pending in the scaffold. The next session runs the notebooks on Colab in order

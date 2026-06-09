@@ -77,8 +77,10 @@ capping under an adaptive greedy-suffix attack.
    to bottom. Figures display inline (save them manually on a temporary runtime); all
    JSON/`.pt` outputs persist to `/content/drive/MyDrive/tara_project/results/`.
 
-   The notebooks are generated artifacts — edit `scripts/build_nbXX.py` (granular stages)
-   and re-run `python scripts/build_merged.py` rather than editing the `.ipynb` directly.
+   The three notebooks are generated artifacts. To change one, edit the relevant
+   per-stage cell library (`scripts/build_nb00.py` … `build_nb06.py`) and re-run the
+   single build entry point, `python scripts/build_merged.py`, rather than editing the
+   `.ipynb` directly. (`scripts/` is kept local only — it is not pushed to the repo.)
 
 ## Expected results
 
