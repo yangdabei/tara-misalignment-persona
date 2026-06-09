@@ -10,3 +10,4 @@ results/*.png
 results/*.json
 .ipynb_checkpoints/
 wandb/
+.venv/
