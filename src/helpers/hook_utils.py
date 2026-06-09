@@ -27,13 +27,15 @@ class SteeringHook:
 
     The steering vector is scaled by `steering_coef * norm(h)` per token so the
     coefficient reads as a fraction of the hidden-state norm (ARENA 4.1 convention).
+    Sensible values are ~0.2-1.0 (ARENA sweeps [0.2, 0.4, 0.6, 0.8, 1.0]); a coef
+    much above 1 swamps the residual stream and produces incoherent output.
     """
 
     def __init__(
         self,
         steering_vector: Float[Tensor, " d_model"],
         layer_idx: int,
-        steering_coef: float = 4.0,
+        steering_coef: float = 0.4,
         apply_to_all_tokens: bool = True,
     ):
         self.steering_vector = F.normalize(steering_vector.float(), dim=0)

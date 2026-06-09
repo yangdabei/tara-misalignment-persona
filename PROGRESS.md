@@ -1,5 +1,5 @@
 # PROGRESS.md — Agent Handoff File
-Last updated: 2026-06-10 (session 2 — repo published, Colab-load bugs fixed, tqdm added)
+Last updated: 2026-06-10 (session 3 — fixed steering-coefficient units bug)
 Active phase: Scaffold complete and pushed to GitHub. Execution phase = running the 3
 notebooks on Colab. Session 2 got past the first two Colab load-time errors; the next
 session continues running notebook 01 from the model-load cell onward.
@@ -73,6 +73,20 @@ session continues running notebook 01 from the model-load cell onward.
 - [x] Refactored scripts so build_merged.py is the SOLE notebook-build entry point producing
       exactly 3 notebooks. The seven build_nbXX.py are now import-only cell libraries
       (module-level `cells` list, no __main__ write block). tests still 14/14, notebooks rebuilt.
+
+## Session 3 changes (done this session)
+- [x] **Fixed the flat 0% steering sweep in notebook 01.** SteeringHook scales the (unit)
+      direction by `coef * ||h||` per token — coef is a FRACTION of the hidden norm (ARENA
+      4.1 convention; verified against ARENA_3.0 solutions: default 0.4, sweep 0.2–1.0).
+      The notebooks were sweeping coef 2.0–8.0, i.e. adding 2–8× the hidden norm at every
+      token → gibberish → coherence < 0.5 → is_em_response always False → EM rate pinned
+      at 0%. Fixes: nb01 sweep → [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]; nb05 causal sweep
+      [0,4,8] → [0, 0.4, 0.8]; SteeringHook default 4.0 → 0.4. Notebooks rebuilt, 14/14
+      tests pass.
+- [x] **Stale-result gotcha:** the bad sweep wrote
+      `/content/drive/MyDrive/tara_project/results/01_steering_verification.json`; the
+      quick-resume cell will reload it. Delete that file on Drive before re-running the
+      steering cell (also delete 01_direction_comparisons.json if it was written).
 
 ## Currently in progress (or next to start)
 Running notebook 01 on Colab. Got past setup + the two load-time errors; the immediate next
