@@ -83,6 +83,21 @@ session continues running notebook 01 from the model-load cell onward.
       at 0%. Fixes: nb01 sweep → [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]; nb05 causal sweep
       [0,4,8] → [0, 0.4, 0.8]; SteeringHook default 4.0 → 0.4. Notebooks rebuilt, 14/14
       tests pass.
+- [x] **Fixed steering applied to all tokens** (second cause of the flat sweep): ARENA's
+      validated sweep uses apply_to_all_tokens=False (steer each generated token only);
+      True also perturbs Qwen's massive-norm attention-sink prompt token. nb01 + nb05
+      cells now pass False; the sweep cell also records mean alignment/coherence and the
+      raw judged responses per coef so a flat EM rate is diagnosable.
+- [x] **Fixed the extracted direction being a TOPIC direction, not the EM direction**
+      (third cause, confirmed live: cos(ours, released vector) = 0.016, steered outputs
+      drifted to gender-roles content). Cause: judged responses are ordered by question
+      and the extraction cell sliced aligned[:32]/misaligned[:32], so the two sets had
+      disjoint topic mixes (misaligned dominated by the gender-roles question). Fix: the
+      nb01 extraction cell now balances the sets PER QUESTION (equal aligned/misaligned
+      counts per question, cap 8) so topic cancels in the mean-diff. nb04/nb05 contrastive
+      extractions already use identical question lists on both sides — unaffected.
+      NOTE: any 01_em_mean_diff_directions.pt saved on Drive before this fix is junk —
+      delete it so the direction is re-extracted.
 - [x] **Stale-result gotcha:** the bad sweep wrote
       `/content/drive/MyDrive/tara_project/results/01_steering_verification.json`; the
       quick-resume cell will reload it. Delete that file on Drive before re-running the
