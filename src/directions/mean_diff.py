@@ -12,6 +12,7 @@ import torch as t
 import torch.nn.functional as F
 from jaxtyping import Float
 from torch import Tensor
+from tqdm.auto import tqdm
 
 from ..helpers.model_utils import _normalize_messages, _return_layers
 
@@ -115,7 +116,8 @@ def get_response_activations_all_layers(
     handles = [blocks[idx].register_forward_hook(make_hook(idx)) for idx in layers]
     results: dict[int, list[Tensor]] = {idx: [] for idx in layers}
     try:
-        for prompt, response in zip(prompts, responses):
+        pairs = list(zip(prompts, responses))
+        for prompt, response in tqdm(pairs, desc="activations", disable=len(pairs) < 4):
             input_ids, prompt_len = _chat_token_ids(tokenizer, prompt, response, model.device)
             if input_ids.shape[1] <= prompt_len:
                 # Empty response: fall back to the last prompt token to avoid NaNs.

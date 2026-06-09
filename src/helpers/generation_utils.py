@@ -9,6 +9,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 import torch as t
 from openai import OpenAI
+from tqdm.auto import tqdm
 
 from .model_utils import _normalize_messages
 
@@ -91,7 +92,8 @@ def generate_responses_locally(
     """
     expanded = [p for p in prompts for _ in range(n_samples)]
     flat_responses: list[str] = []
-    for i in range(0, len(expanded), batch_size):
+    batch_starts = range(0, len(expanded), batch_size)
+    for i in tqdm(batch_starts, desc="generating", disable=len(batch_starts) < 2):
         flat_responses.extend(
             generate_batch(
                 model,
@@ -144,6 +146,7 @@ def generate_responses_parallel(
     max_tokens: int = 512,
     temperature: float = 0.7,
     max_workers: int = 16,
+    desc: str = "API calls",
 ) -> list[str]:
     """Parallel API calls via ThreadPoolExecutor, order-preserving (ARENA 4.1)."""
     def _one(prompt):
@@ -157,4 +160,7 @@ def generate_responses_parallel(
         )
 
     with ThreadPoolExecutor(max_workers=max_workers) as pool:
-        return list(pool.map(_one, prompts))
+        return list(
+            tqdm(pool.map(_one, prompts), total=len(prompts), desc=desc,
+                 disable=len(prompts) < 8)
+        )

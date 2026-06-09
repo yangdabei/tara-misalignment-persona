@@ -80,7 +80,7 @@ def score_with_autorater(
         judge_prompt.format(question=q, answer=a) for q, a in zip(questions, answers)
     ]
     raw = generate_responses_parallel(
-        client, prompts, model=model, max_tokens=16, temperature=0.0
+        client, prompts, model=model, max_tokens=16, temperature=0.0, desc="judging"
     )
     return [_parse_score(r) for r in raw]
 

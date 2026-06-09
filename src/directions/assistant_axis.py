@@ -14,6 +14,7 @@ import torch as t
 import torch.nn.functional as F
 from jaxtyping import Float
 from torch import Tensor
+from tqdm.auto import tqdm
 
 from ..helpers.model_utils import _normalize_messages
 from .mean_diff import get_response_activations
@@ -157,7 +158,7 @@ def extract_assistant_axis(
     all_personas = {**DEFAULT_PERSONAS, **role_personas}
 
     persona_means: dict[str, Tensor] = {}
-    for name, persona_prompt in all_personas.items():
+    for name, persona_prompt in tqdm(all_personas.items(), desc="personas"):
         # Persona system prompt is merged into the user turn (Gemma-2 compatible).
         prompts = [
             _normalize_messages(
