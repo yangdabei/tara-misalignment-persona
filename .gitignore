@@ -1,0 +1,12 @@
+.env
+*.pyc
+__pycache__/
+*.pt
+*.safetensors
+*.bin
+checkpoints/
+results/*.csv
+results/*.png
+results/*.json
+.ipynb_checkpoints/
+wandb/
