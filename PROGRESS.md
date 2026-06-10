@@ -130,10 +130,15 @@ presentation/em_results_10min.pptx.
       (api_client=None); API default model bumped to qwen-2.5-72b-instruct.
 - [x] **NOTEBOOK 01 RAN END-TO-END.** Executed copy with all outputs committed at
       notebooks/01_qwen_analysis_outputs.ipynb. All numbers in the results table below.
-- [x] **Added an EM-on-Assistant-Axis visualisation cell** (end of nb01 part 3): histograms
-      of per-response Axis projections (EM vs aligned responses) + persona anchor vlines;
-      saves 02_em_on_assistant_axis.png. NOT yet run — needs a Qwen session (quick-resume
-      makes it cheap: setup + model load + this cell; only persona anchors recompute).
+- [x] **Added AND RAN the EM-on-Assistant-Axis visualisation cell** (end of nb01 part 3):
+      histograms of per-response Axis projections (EM vs aligned responses) + persona anchor
+      vlines; 02_em_on_assistant_axis.png saved on Drive. Result: heavy OVERLAP — mean
+      projection aligned +6.31 vs EM +7.00 (n=40/19), EM responses NOT displaced toward the
+      role-play anchors (leviathan/ghost at −16…0; default-assistant anchors ~13.5–14.5).
+      Visual confirmation that EM is not persona drift along the Axis. Interpretation
+      caveats: density-normalised histograms make the n=19 EM bars tall (tall ≠ more);
+      anchors come from the base model on extraction questions, histograms from the EM
+      model on eval questions — anchors orient the axis, they are not a strict ruler.
 - [x] **Drafted the 10-min results deck**: presentation/em_results_10min.pptx (local-only,
       gitignored; 11 slides + speaker notes, embeds the three figures from the executed
       notebook). Regenerate/extend with python-pptx (installed in the local .venv).
@@ -172,8 +177,8 @@ presentation/em_results_10min.pptx.
       toxic/refusal fallbacks, jailbreak dataset fallback).
 - [ ] Decide + implement the notebook 02 re-scope (EM-direction ceiling-capping condition;
       see Currently in progress), then run 02 (A100 80GB, ~4–6 h).
-- [ ] Run the new EM-on-Assistant-Axis viz cell (any Qwen session; cheap via quick-resume).
-- [ ] Update the deck with nb03/nb02 results + trait prompt/output examples.
+- [ ] Update the deck with nb03/nb02 results + trait prompt/output examples + the new
+      02_em_on_assistant_axis.png figure (run + figure done; see results table).
 - [ ] Optional, for publishable nb01 numbers: clear 01_*/00_* results on Drive and re-run
       notebook 01 fresh — committed defaults now use n_samples=50/question and the
       split-half check (the session-3 run used 25 samples → 17 pairs, n=24/coef).
@@ -189,6 +194,7 @@ Source column names the merged notebook (and the original stage prefix on the re
 | cos(mean-diff L24, released TRAINED vector — final root file) — low EXPECTED (B-vector mystery) | 0.0087 | 01_qwen_analysis (01) |
 | cos(mean-diff, organism LoRA-B write vectors), layers 15–29 | −0.044 … +0.028 (magnitudes ≤0.044; reproduces the ~0.04 B-vector mystery) | 01_qwen_analysis (01) |
 | EM direction vs. Assistant Axis cosine (layer 24, Qwen2.5-14B) | −0.074 (≈ orthogonal — EM is NOT drift along the Axis in this organism) | 01_qwen_analysis (02) |
+| Per-response Axis projection, EM vs aligned responses (L24) | EM +7.00 vs aligned +6.31 (n=19/40) — overlapping; EM not shifted toward role-play | 01_qwen_analysis (02, 02_em_on_assistant_axis.png) |
 | EM direction vs. Assistant Axis cosine (layer 22, Gemma-2-27B) | TBD | 03_gemma_geometry_robustness (05) |
 | Lead time: EM direction probe vs. behavioural eval (steps) | 100 (probe fires @ step 150, behaviour ≥5% @ step 250; real checkpoints, steps 0–396) | 01_qwen_analysis (02) |
 | Probe ROC AUC, per-checkpoint EM≥5% (11 checkpoints) | EM-direction 1.00; Assistant-Axis 0.67 (axis "lead 240" = noise false-positive @ step 10) | 01_qwen_analysis (02) |
