@@ -1,13 +1,13 @@
 .env
+.DS_Store
 *.pyc
 __pycache__/
 *.pt
 *.safetensors
 *.bin
 checkpoints/
-results/*.csv
-results/*.png
-results/*.json
+results/*
+!results/README.md
 .ipynb_checkpoints/
 wandb/
 .venv/
