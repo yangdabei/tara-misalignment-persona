@@ -1,8 +1,11 @@
 # PROGRESS.md — Agent Handoff File
-Last updated: 2026-06-10 (session 3 — fixed steering-coefficient units bug)
-Active phase: Scaffold complete and pushed to GitHub. Execution phase = running the 3
-notebooks on Colab. Session 2 got past the first two Colab load-time errors; the next
-session continues running notebook 01 from the model-load cell onward.
+Last updated: 2026-06-10 (session 3 end — NOTEBOOK 01 COMPLETE with results; user now
+running notebook 03 on Colab; notebook 02 deferred pending a re-scope, see Pending tasks)
+Active phase: execution + write-up. Notebook 01 ran end-to-end (executed copy with outputs
+committed at notebooks/01_qwen_analysis_outputs.ipynb; key numbers in the results table
+below). Run order changed to 01 → 03 → 02 (03 is independent of 02 and its geometry
+results de-risk 02's design). A draft 10-min results deck exists locally (gitignored) at
+presentation/em_results_10min.pptx.
 
 ## Repo / environment facts (read first)
 - **GitHub: https://github.com/yangdabei/tara-misalignment-persona — PUBLIC.** Created and
@@ -59,9 +62,8 @@ session continues running notebook 01 from the model-load cell onward.
 - CheckpointMonitor lead-time/ROC smoke-tested with synthetic data (probes lead correctly,
   AUC computed, from_log round-trips).
 - All 3 merged notebooks: valid nbformat-4 JSON; every code cell compiles (Colab magics
-  treated as statements). They are generated artifacts — edit the per-stage cell library
-  (scripts/build_nb00.py … build_nb06.py) and re-run scripts/build_merged.py, not the
-  .ipynb directly. build_merged.py is the only script that writes notebooks.
+  treated as statements). They are generated artifacts — see "How to regenerate notebooks"
+  below for the current (session-3) one-script-per-notebook build layout.
 
 ## Session 2 changes (done this session)
 - [x] Created the GitHub repo and pushed all 5 scaffold commits. Made it PUBLIC.
@@ -106,46 +108,90 @@ session continues running notebook 01 from the model-load cell onward.
       extractions already use identical question lists on both sides — unaffected.
       NOTE: any 01_em_mean_diff_directions.pt saved on Drive before this fix is junk —
       delete it so the direction is re-extracted.
-- [x] **Stale-result gotcha:** the bad sweep wrote
-      `/content/drive/MyDrive/tara_project/results/01_steering_verification.json`; the
-      quick-resume cell will reload it. Delete that file on Drive before re-running the
-      steering cell (also delete 01_direction_comparisons.json if it was written).
+- [x] **Stale-result gotcha (now historical):** quick-resume reloads any existing result
+      file by name, so a result produced by buggy code must be DELETED from Drive
+      (results/ under /content/drive/MyDrive/tara_project/) or it silently masks the fix.
+      This bit us twice this session; remember it whenever a notebook cell is changed.
+- [x] **Fixed the released-vector comparison** (was meaningless): the compare cell took
+      files[0] of the HF repo listing = checkpoints/checkpoint-10 (nearly untrained,
+      cos 0.30 to final). Now loads the root steering_vector.pt explicitly (== final,
+      checkpoint-676; dict keys steering_vector/layer_idx=24/alpha=256).
+- [x] **Corrected the cosine EXPECTATION for that comparison**: the released vector is
+      TRAINED with SGD as a rank-1 write adapter — the analog of a LoRA-B vector — and
+      Soligo et al. report cos(B, mean-diff) ≈ 0.04 (the "B-vector mystery"). Mean-diff
+      directions only converge (>0.8) with other mean-diff directions. So a near-zero
+      cosine there is EXPECTED, not a bug. Real validity checks: split-half reliability
+      (added to the extraction cell) + behavioural steering.
+- [x] **Wired checkpoint monitoring to REAL checkpoints**: the adapter repo ships 88
+      per-step PEFT adapters under checkpoints/checkpoint-<N>/ (see Blockers, RESOLVED).
+- [x] **Fixed Assistant-Axis extraction**: OpenRouter delisted qwen/qwen-2.5-14b-instruct
+      (400 error). The API path was unnecessary anyway — the cell runs inside
+      disable_adapter(), which IS clean Qwen2.5-14B — so extraction is now local
+      (api_client=None); API default model bumped to qwen-2.5-72b-instruct.
+- [x] **NOTEBOOK 01 RAN END-TO-END.** Executed copy with all outputs committed at
+      notebooks/01_qwen_analysis_outputs.ipynb. All numbers in the results table below.
+- [x] **Added an EM-on-Assistant-Axis visualisation cell** (end of nb01 part 3): histograms
+      of per-response Axis projections (EM vs aligned responses) + persona anchor vlines;
+      saves 02_em_on_assistant_axis.png. NOT yet run — needs a Qwen session (quick-resume
+      makes it cheap: setup + model load + this cell; only persona anchors recompute).
+- [x] **Drafted the 10-min results deck**: presentation/em_results_10min.pptx (local-only,
+      gitignored; 11 slides + speaker notes, embeds the three figures from the executed
+      notebook). Regenerate/extend with python-pptx (installed in the local .venv).
+- [x] **Restructured scripts/ to one build script per notebook** (numbers match notebooks;
+      build_merged.py + build_nb00..06 gone; merge machinery in nb_common.py). Verified
+      by rebuilding all three notebooks byte-identical.
 
 ## Currently in progress (or next to start)
-Running notebook 01 on Colab, mid-way through stage 01. The steering verification now WORKS
-(see Key numerical results: inverted-U, peak 29.2% EM at coef 0.4 — Soligo/ARENA-consistent;
-the EM rate falls again at high coef because steering degrades coherence and EM requires
-coherence > 0.5). The live session ran with the session-3 fixes applied as in-session patches
-(per-question-balanced 17-pair direction, apply_to_all_tokens=False, coefs 0-1.0); the good
-sweep + balanced directions are saved to Drive. Remaining in notebook 01: re-run the plot
-cell (saves 01_steering_verification.png), the LoRA-B comparison cell (expect cos ~±0.04),
-the save-comparisons cell, then stage 02 (Assistant Axis + checkpoint monitoring).
-For publishable numbers, regenerate the judged set at n_samples=50 (committed default) —
-the 17-pair direction and n=24-per-coef sweep are noisy (binomial ±~9% at the peak).
+- USER IS RUNNING NOTEBOOK 03 (Gemma geometry & robustness) on Colab now. Run order was
+  deliberately changed to 01 → 03 → 02: notebook 03 is independent of 02, and its geometry
+  stage (cos(EM, Axis) on Gemma + the causal steering→axis-projection test) determines
+  whether 02's Assistant-Axis-capping design is worth its 4–6 h cost (see next bullet).
+- NOTEBOOK 02 RE-SCOPE (recommended, not yet implemented): nb01 found EM is nearly
+  ORTHOGONAL to the Assistant Axis (cos −0.074, flat projection, AUC 0.67), so 02's
+  axis-capping intervention is predicted to fail (a clean, pre-registered negative).
+  Recommendation discussed with user: add an EM-DIRECTION ceiling-capping condition
+  (ActivationCapper mode="ceiling" with em_direction_l24, threshold calibrated on base
+  model) alongside the axis condition, turning 02 into "cap the persona axis vs cap the
+  misalignment direction itself". User has NOT yet said go — confirm before editing
+  scripts/build_nb02.py.
+- PRESENTATION: user wants to add example prompts + outputs for the traits studied; they
+  are downloading results from Drive. Source material already available: base-vs-EM
+  contrast quotes (cells of 01_qwen_analysis_outputs.ipynb, e.g. the "one wish" question),
+  00_baseline_em_rate.json (em_model_raw/base_model_raw: question/answer/alignment/
+  coherence per response), 01_judged_responses.json (200 judged organism responses),
+  01_steering_verification.json ("responses" per coef — steered outputs), and from
+  notebook 03: 04_case_study_trajectories.json + persona/trait prompts in
+  src/directions/assistant_axis.py (ASSISTANT_LIKE/ROLE_PLAYING/DEFAULT personas) and
+  the contrastive system prompts in the nb03 cells. Deck lives at
+  presentation/em_results_10min.pptx; add a traits-examples slide + the
+  02_em_on_assistant_axis.png figure once produced.
 
 ## Pending tasks (ordered) — execution phase
-- [ ] In the active Colab session: `cd` into the Drive clone, `git pull` (to get the
-      requirements/tqdm fixes), then **Runtime → Restart runtime**, and re-run notebook 01
-      from the top. Confirm baseline EM ~11% (stage 00).
-- [ ] Finish notebook 01 (01_qwen_analysis = stages 00+01+02): EM direction, steering
-      verification, Assistant Axis (Qwen2.5-14B L24), checkpoint monitoring, lead-time + ROC.
-- [ ] Run notebook 02 (02_qwen_capping_finetune = stage 03) as its own session
-      (A100 80GB, ~4–6 h): baseline vs capping-during-training vs capping-at-inference.
-- [ ] Run notebook 03 (03_gemma_geometry_robustness = stages 04+05+06) on A100 80GB:
-      geometry heatmap, principal angle, causal test, adversarial robustness Pareto.
-- [ ] Fill in the results table below and write up findings.
+- [ ] Notebook 03 on Colab (running): geometry heatmap, principal angle, causal test,
+      adversarial robustness Pareto. Watch the Blockers section items (axis file layout,
+      toxic/refusal fallbacks, jailbreak dataset fallback).
+- [ ] Decide + implement the notebook 02 re-scope (EM-direction ceiling-capping condition;
+      see Currently in progress), then run 02 (A100 80GB, ~4–6 h).
+- [ ] Run the new EM-on-Assistant-Axis viz cell (any Qwen session; cheap via quick-resume).
+- [ ] Update the deck with nb03/nb02 results + trait prompt/output examples.
+- [ ] Optional, for publishable nb01 numbers: clear 01_*/00_* results on Drive and re-run
+      notebook 01 fresh — committed defaults now use n_samples=50/question and the
+      split-half check (the session-3 run used 25 samples → 17 pairs, n=24/coef).
+- [ ] Fill in the remaining results-table rows and write up findings.
 
 ## Key numerical results (fill in as notebooks run)
 Source column names the merged notebook (and the original stage prefix on the result file).
 | Metric | Value | Source notebook (stage) |
 |---|---|---|
-| Baseline EM rate (R1 model) | TBD | 01_qwen_analysis (00) |
+| Baseline EM rate (R1 organism / base model) | 12.5% / 0.0% (n=40 each; paper ~11%; organism mean align 0.77, mean coh 0.91) | 01_qwen_analysis (00) |
 | Steering verification: peak EM rate (base model, L24 mean-diff, all_tokens=False) | 29.2% @ coef 0.4 (25.0% @ 0.6, 12.5% @ 0.8, 4.2% @ 1.0; 0% @ 0/0.2; n=24/coef) | 01_qwen_analysis (01) |
 | Split-half cosine of mean-diff direction (L24, 17 balanced pairs) | 0.647 | 01_qwen_analysis (01) |
-| cos(mean-diff L24, released TRAINED vector) — low EXPECTED (B-vector mystery) | 0.020 | 01_qwen_analysis (01) |
-| EM direction vs. Assistant Axis cosine (layer 24, Qwen2.5-14B) | TBD | 01_qwen_analysis (02) |
+| cos(mean-diff L24, released TRAINED vector — final root file) — low EXPECTED (B-vector mystery) | 0.0087 | 01_qwen_analysis (01) |
+| cos(mean-diff, organism LoRA-B write vectors), layers 15–29 | −0.044 … +0.028 (magnitudes ≤0.044; reproduces the ~0.04 B-vector mystery) | 01_qwen_analysis (01) |
+| EM direction vs. Assistant Axis cosine (layer 24, Qwen2.5-14B) | −0.074 (≈ orthogonal — EM is NOT drift along the Axis in this organism) | 01_qwen_analysis (02) |
 | EM direction vs. Assistant Axis cosine (layer 22, Gemma-2-27B) | TBD | 03_gemma_geometry_robustness (05) |
-| Lead time: EM direction probe vs. behavioural eval (steps) | TBD | 01_qwen_analysis (02) |
+| Lead time: EM direction probe vs. behavioural eval (steps) | 100 (probe fires @ step 150, behaviour ≥5% @ step 250; real checkpoints, steps 0–396) | 01_qwen_analysis (02) |
+| Probe ROC AUC, per-checkpoint EM≥5% (11 checkpoints) | EM-direction 1.00; Assistant-Axis 0.67 (axis "lead 240" = noise false-positive @ step 10) | 01_qwen_analysis (02) |
 | Capping-training EM rate reduction vs. baseline (%) | TBD | 02_qwen_capping_finetune (03) |
 | Adaptive attack harm rate vs. static capping harm rate | TBD | 03_gemma_geometry_robustness (06) |
 
@@ -184,9 +230,15 @@ Tracked & on GitHub:
 - src/monitoring/checkpoint_monitor.py, src/finetuning/lora_trainer.py
 - tests/{test_directions,test_hooks}.py
 - notebooks/{01_qwen_analysis, 02_qwen_capping_finetune, 03_gemma_geometry_robustness}.ipynb
+- notebooks/01_qwen_analysis_outputs.ipynb (EXECUTED copy of notebook 01 with all outputs —
+  source of the deck figures and base-vs-EM example quotes)
 Local-only (gitignored, NOT on GitHub):
-- scripts/nb_common.py + scripts/build_nb00..06.py + scripts/build_merged.py
-  (the notebook source/build tooling — lives only on /Users/yangd/Documents/...)
+- scripts/nb_common.py + scripts/build_nb01.py + build_nb02.py + build_nb03.py
+  (the notebook source/build tooling, one script per notebook — only on /Users/yangd/...)
+- presentation/em_results_10min.pptx (draft 10-min results deck, python-pptx generated)
+- Heavy run outputs live on Google Drive, NOT in the repo:
+  /content/drive/MyDrive/tara_project/results/ (JSON/.pt/.png per notebook; results/
+  in the repo holds only the README mapping)
 
 ## How to regenerate notebooks (local machine only)
 The 3 .ipynb are generated from the local scripts/, one script per notebook (numbers match):
@@ -197,17 +249,30 @@ one model load, swaps later loads for bridge cells). Then commit notebooks/. Do 
 the .ipynb. On a fresh clone without scripts/, you can still run the notebooks as-is.
 
 ## Next agent: start here
-Load PROGRESS.md, then `cat` the "Repo / environment facts" block at the top. The scaffold is
-complete and PUBLIC at github.com/yangdabei/tara-misalignment-persona. You are in the execution
-phase, mid-way through notebook 01 on Colab.
+Load PROGRESS.md top to bottom; the header and "Currently in progress" reflect the true state.
+Status in one line: notebook 01 is DONE with results (executed copy committed at
+notebooks/01_qwen_analysis_outputs.ipynb; numbers in the table above); the user is running
+notebook 03 on Colab; notebook 02 is deferred pending a re-scope decision.
 
-Immediate next step: in the live Colab session, `cd` into the Drive clone and `git pull` (to get
-the peft/torchao pins + tqdm), **Restart runtime**, then re-run 01_qwen_analysis.ipynb from the
-top. Confirm baseline EM ~11% at stage 00, then continue. Run order: 01 → 02 → 03.
+Likely first requests from the user:
+1. Notebook 03 results / errors — debug as in session 3 (read raw generations, check Drive
+   for stale results before trusting quick-resume, verify HF repo layouts locally with curl
+   before trusting notebook fallbacks). Then fill the nb03 rows of the results table.
+2. The notebook 02 re-scope: if the user approves, edit scripts/build_nb02.py to add an
+   EM-direction ceiling-capping condition (ActivationCapper mode="ceiling",
+   em_direction_l24 from results/01_em_mean_diff_directions.pt on Drive, threshold from
+   base-model projection distribution), rebuild with `python scripts/build_nb02.py`,
+   commit notebooks/, push, user pulls in Colab.
+3. Presentation updates: extend presentation/em_results_10min.pptx (python-pptx in the
+   local .venv; figures extractable from executed notebooks via base64 in cell outputs).
+   User wants trait prompts + example outputs slides — see "Currently in progress" for
+   exactly which Drive/repo files hold the quotes.
 
-If load still fails: the requirements fix is peft>=0.15.0 + torchao>=0.16.0 (already in
-requirements.txt on GitHub). Do NOT pin peft below 0.15 (that reintroduces the use_auth_token
-bug). The Colab setup cell won't re-clone over an existing Drive dir, so a stale Drive clone is
-the usual culprit — `git pull` inside it, or delete the dir to force a fresh clone.
+Session-3 debugging lore worth keeping in mind (details in "Session 3 changes"):
+steering coef = FRACTION of hidden norm; steer generated tokens only; balance mean-diff
+sets per question; near-zero cosine vs TRAINED write vectors is expected (B-vector
+mystery); quick-resume will resurrect stale buggy results unless deleted from Drive.
 
-GPU runs happen on Colab; this agent only edits code/notebooks. Update this file at session end.
+GPU runs happen on Colab; this agent only edits code/notebooks/deck. The user must
+`git pull` inside the Drive clone to pick up pushed changes (setup cell never re-clones).
+Update this file at session end.
