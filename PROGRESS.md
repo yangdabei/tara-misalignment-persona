@@ -9,10 +9,18 @@ session continues running notebook 01 from the model-load cell onward.
   pushed this session via `gh` (account `yangdabei`). Default branch `main`.
 - **`scripts/` is intentionally NOT in the repo.** It is gitignored (local-only build tooling).
   So on GitHub you see src/, notebooks/, tests/, data/, results/ (READMEs only), docs — but no
-  scripts/. The build_nbXX.py / build_merged.py files still exist on the local machine at
+  scripts/. RESTRUCTURED (session 3): exactly one build script per notebook, numbers matching —
+  scripts/build_nb01.py → notebooks/01_qwen_analysis.ipynb, build_nb02.py → 02_qwen_capping_
+  finetune.ipynb, build_nb03.py → 03_gemma_geometry_robustness.ipynb (plus shared nb_common.py,
+  which now also holds the multi-part merge machinery: section_cells/build_group/bridges live
+  in the per-notebook scripts). The old seven per-stage libraries (build_nb00..06) and
+  build_merged.py are GONE. These live only on the local machine at
   /Users/yangd/Documents/tara-misalignment-persona/scripts/ and are the source of truth for
   the notebooks. If a future session is on a fresh clone, scripts/ will be ABSENT — the
   committed .ipynb files are self-contained and runnable without them.
+- **`presentation/` is local-only too** (gitignored, session 3): presentation/
+  em_results_10min.pptx is the 10-minute results deck; it was briefly committed and then
+  untracked, so it still exists in git history but not in the working tree on GitHub.
 - **Clone URL is already correct.** scripts/nb_common.py SETUP_CELL clones
   https://github.com/yangdabei/tara-misalignment-persona.git — no placeholder left to fix.
   The Colab setup cell does NOT re-clone over an existing Drive dir, so to pick up new commits
@@ -181,10 +189,12 @@ Local-only (gitignored, NOT on GitHub):
   (the notebook source/build tooling — lives only on /Users/yangd/Documents/...)
 
 ## How to regenerate notebooks (local machine only)
-The 3 .ipynb are generated from the local scripts/. To change a notebook: edit the relevant
-scripts/build_nbXX.py cell library, then run `python scripts/build_merged.py` (the ONLY script
-that writes notebooks; it emits exactly the 3 merged ones). Then commit notebooks/. Do not
-hand-edit the .ipynb. On a fresh clone without scripts/, you can still run the notebooks as-is.
+The 3 .ipynb are generated from the local scripts/, one script per notebook (numbers match):
+edit scripts/build_nbNN.py and run `python scripts/build_nbNN.py` to rewrite
+notebooks/NN_*.ipynb. Multi-part notebooks (01 and 03) define part1_cells/part2_cells/
+part3_cells and compose them via nb_common.build_group (strips per-part setup cells, keeps
+one model load, swaps later loads for bridge cells). Then commit notebooks/. Do not hand-edit
+the .ipynb. On a fresh clone without scripts/, you can still run the notebooks as-is.
 
 ## Next agent: start here
 Load PROGRESS.md, then `cat` the "Repo / environment facts" block at the top. The scaffold is

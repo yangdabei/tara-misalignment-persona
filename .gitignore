@@ -12,3 +12,4 @@ results/*.json
 wandb/
 .venv/
 scripts/
+presentation/
