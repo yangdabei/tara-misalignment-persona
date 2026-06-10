@@ -1,11 +1,13 @@
 # PROGRESS.md — Agent Handoff File
-Last updated: 2026-06-10 (session 3 end — NOTEBOOK 01 COMPLETE with results; user now
-running notebook 03 on Colab; notebook 02 deferred pending a re-scope, see Pending tasks)
+Last updated: 2026-06-10 (session 4 end — GPU runs MOVED FROM COLAB TO RUNPOD; notebook 03
+fixed (case-study schema + OOM) and ready to run on an H100-80GB pod; pip install was
+still finishing on the pod at session end; notebook 02 still deferred pending re-scope)
 Active phase: execution + write-up. Notebook 01 ran end-to-end (executed copy with outputs
 committed at notebooks/01_qwen_analysis_outputs.ipynb; key numbers in the results table
 below). Run order changed to 01 → 03 → 02 (03 is independent of 02 and its geometry
 results de-risk 02's design). A draft 10-min results deck exists locally (gitignored) at
-presentation/em_results_10min.pptx.
+presentation/em_results_10min.pptx. **READ THE "RunPod environment" SECTION before
+debugging any GPU-run issue — Colab assumptions no longer hold.**
 
 ## Repo / environment facts (read first)
 - **GitHub: https://github.com/yangdabei/tara-misalignment-persona — PUBLIC.** Created and
@@ -146,9 +148,58 @@ presentation/em_results_10min.pptx.
       build_merged.py + build_nb00..06 gone; merge machinery in nb_common.py). Verified
       by rebuilding all three notebooks byte-identical.
 
+## RunPod environment (session 4 — GPU runs now happen here, NOT Colab)
+Colab was abandoned for notebook 03: no H100 available, and the A100-40GB OOMed (27B bf16
+≈ 55 GB). Current setup:
+- **Pod: H100 SXM 80GB, Secure Cloud, region US-NE-1, $3.29/hr.** SSH config entry
+  `runpod` on the user's Mac (~/.ssh/config) → root@216.243.220.219 port 13347, key
+  ~/.ssh/id_ed25519. **IP/port change on every new pod** — user pastes the new
+  "SSH over exposed TCP" command (NOT the ssh.runpod.io proxy, which VS Code can't use)
+  and the agent sed-updates ~/.ssh/config. Pubkey must be in RunPod account Settings →
+  SSH Public Keys (done) — keys added there only inject at pod START.
+- **Persistent network volume mounted at /workspace** (survives pod resets; tied to
+  US-NE-1, so new pods must be in that region to attach it). Repo cloned at
+  /workspace/tara-misalignment-persona with a real .env (HF_TOKEN + OPENROUTER_API_KEY
+  filled in; format KEY=value). **VERIFY VOLUME SIZE ≥100GB** (Storage → Network
+  Volumes; grow-only, live) — user was asked to confirm at session end; if 50GB the
+  54.5GB Gemma download will hit EDQUOT (os error 122) like pod #1 did. Old orphaned
+  volumes from earlier pods should be deleted (they keep billing).
+- **Container disk 50GB is EPHEMERAL** — wiped on pod stop/reset. pip installs live
+  there → re-run after every reset: `pip install --break-system-packages -q -r
+  requirements.txt ipywidgets ipykernel` (the ubuntu2404 image enforces PEP 668; without
+  the flag pip dies with "externally managed environment"). NEVER run two pip installs
+  concurrently (they race site-packages; this happened twice).
+- **HF_HOME=/workspace/hf_cache** — set on the pod (/etc/environment + .bashrc) AND
+  defaulted by the notebooks' setup cell whenever /workspace exists (commit 24967bf,
+  all 3 notebooks). Without it the 54.5GB model lands on the 50GB container disk and
+  fails at the end. Model cache persists on the volume across pods → one-time download.
+- **Network quirks measured on these pods:** HuggingFace ≈ 89 MB/s (model = ~10 min),
+  but PyPI only ~200 kB/s (pip takes ~15 min) — that's the pod's routing, not a fault.
+  When bandwidth-testing, beware: speed.cloudflare.com is blocked/dead from this DC, and
+  gated HF repos (e.g. google/gemma-2-2b) return tiny 401 bodies that look like 0 B/s —
+  test with a PUBLIC repo file, e.g. Qwen/Qwen2.5-0.5B-Instruct model.safetensors.
+- **Running notebooks: VS Code Remote-SSH** (connect to host `runpod`, open
+  /workspace/tara-misalignment-persona, system python3 kernel). The user's VS Code
+  settings map `"remote.SSH.serverInstallPath": {"runpod": "/workspace/.vscode-server"}`
+  so the VS Code server + remote extensions persist on the volume (no re-download per
+  pod). tqdm widget render errors in VS Code are cosmetic; `pip install -U ipywidgets`
+  + kernel restart fixes them. For disconnect-proof long runs: papermill in tmux.
+- **Results now flow: pod → user's Mac (repo results/, the canonical local store).**
+  nb01 results already downloaded from Drive into local results/ (verified post-fix
+  versions; 01_em_mean_diff_directions.pt there is the good one nb02 needs — upload it
+  to the pod's results/ before running nb02). .gitignore now covers all of results/
+  except README.md (commit 45b9c4a), so nothing leaks via git; move files with scp /
+  runpodctl send.
+- The agent can (and did) run pod-side commands directly via
+  `ssh -o BatchMode=yes runpod '...'` — setup, diagnostics, killing stray processes.
+
 ## Currently in progress (or next to start)
-- USER IS RUNNING NOTEBOOK 03 (Gemma geometry & robustness) on Colab now. Run order was
-  deliberately changed to 01 → 03 → 02: notebook 03 is independent of 02, and its geometry
+- USER IS ABOUT TO RUN NOTEBOOK 03 (Gemma geometry & robustness) on the RunPod H100 —
+  see "RunPod environment" above. At session-4 end: repo cloned+pulled on pod, .env real,
+  HF_HOME set, pip install still running (background watcher was attached; verify with
+  `ssh runpod 'pgrep -af "pip install"'` and `python3 -c "import dotenv, peft, torchao"`).
+  Remaining before Run All: confirm volume ≥100GB. Model download ~10 min on first load.
+  Run order is 01 → 03 → 02: notebook 03 is independent of 02, and its geometry
   stage (cos(EM, Axis) on Gemma + the causal steering→axis-projection test) determines
   whether 02's Assistant-Axis-capping design is worth its 4–6 h cost (see next bullet).
 - NOTEBOOK 02 RE-SCOPE (recommended, not yet implemented): nb01 found EM is nearly
@@ -171,10 +222,34 @@ presentation/em_results_10min.pptx.
   presentation/em_results_10min.pptx; add a traits-examples slide + the
   02_em_on_assistant_axis.png figure once produced.
 
+## Session 4 changes (done this session)
+- [x] **Fixed nb03 case-study cell crash** (KeyError: 0): the safety-research/assistant-axis
+      transcripts are dicts with a "conversation" key (not "messages"), and the shipped case
+      studies are delusion/selfharm/jailbreak (each _unsteered + _capped per source model) —
+      NOT isolation/suicid as the cell guessed. Now matches unsteered runs only and takes the
+      longest conversation per keyword (qwen-3-32b delusion = 23 assistant turns). Commit 90fcdda.
+- [x] **Fixed nb03 case-study OOM**: model(ids) materialised Gemma's 256k-vocab logits for a
+      4096-token context ≈ 2 GiB bf16 per turn, never used. Cell now calls model.model(ids)
+      (decoder only; the layer-22 ActivationCache hook fires regardless). Commit a6de78a.
+- [x] **Moved GPU execution Colab → RunPod** (no H100 on Colab; A100-40GB OOMs on the 27B).
+      Full environment + gotchas in the "RunPod environment" section above. Took 3 pod
+      attempts: #1 hit EDQUOT (50GB volume < 54.5GB model), #2 was on a host with unusable
+      PyPI bandwidth, #3 (current) is good.
+- [x] **HF_HOME → /workspace/hf_cache** default in the setup cell of all 3 notebooks when
+      /workspace exists (nb_common.py; commit 24967bf) + set in the pod's /etc/environment.
+- [x] **.gitignore tightened** (commit 45b9c4a): all of results/ except README.md (old
+      patterns missed subdirs like results/02_monitoring/), plus .DS_Store.
+- [x] **nb01 results downloaded from Drive → local results/** (canonical local store now).
+      Spot-checked 01_steering_verification.json against the results table — post-fix
+      versions confirmed, so the local 01_em_mean_diff_directions.pt is the good one.
+- [x] VS Code: serverInstallPath for host `runpod` → /workspace/.vscode-server (persists
+      VS Code server + extensions on the volume); ~/.ssh/config `runpod` entry added.
+
 ## Pending tasks (ordered) — execution phase
-- [ ] Notebook 03 on Colab (running): geometry heatmap, principal angle, causal test,
-      adversarial robustness Pareto. Watch the Blockers section items (axis file layout,
-      toxic/refusal fallbacks, jailbreak dataset fallback).
+- [ ] Notebook 03 on RunPod H100 (next: user about to Run All): geometry heatmap, principal
+      angle, causal test, adversarial robustness Pareto. Watch the Blockers section items
+      (axis file layout, toxic/refusal fallbacks, jailbreak dataset fallback). Confirm
+      volume ≥100GB + pip finished first (see "Currently in progress").
 - [ ] Decide + implement the notebook 02 re-scope (EM-direction ceiling-capping condition;
       see Currently in progress), then run 02 (A100 80GB, ~4–6 h).
 - [ ] Update the deck with nb03/nb02 results + trait prompt/output examples + the new
@@ -242,9 +317,12 @@ Local-only (gitignored, NOT on GitHub):
 - scripts/nb_common.py + scripts/build_nb01.py + build_nb02.py + build_nb03.py
   (the notebook source/build tooling, one script per notebook — only on /Users/yangd/...)
 - presentation/em_results_10min.pptx (draft 10-min results deck, python-pptx generated)
-- Heavy run outputs live on Google Drive, NOT in the repo:
-  /content/drive/MyDrive/tara_project/results/ (JSON/.pt/.png per notebook; results/
-  in the repo holds only the README mapping)
+- Heavy run outputs (gitignored, in the local working tree's results/): nb01's results
+  were downloaded from Drive in session 4 and now live in the LOCAL results/ folder —
+  the canonical store going forward. Old copies remain on Google Drive
+  (/content/drive/MyDrive/tara_project/results/, from the Colab era); new RunPod runs
+  write to the pod's /workspace/tara-misalignment-persona/results/ and must be scp'd /
+  runpodctl-sent down to the local results/ after each session.
 
 ## How to regenerate notebooks (local machine only)
 The 3 .ipynb are generated from the local scripts/, one script per notebook (numbers match):
@@ -255,30 +333,35 @@ one model load, swaps later loads for bridge cells). Then commit notebooks/. Do 
 the .ipynb. On a fresh clone without scripts/, you can still run the notebooks as-is.
 
 ## Next agent: start here
-Load PROGRESS.md top to bottom; the header and "Currently in progress" reflect the true state.
-Status in one line: notebook 01 is DONE with results (executed copy committed at
-notebooks/01_qwen_analysis_outputs.ipynb; numbers in the table above); the user is running
-notebook 03 on Colab; notebook 02 is deferred pending a re-scope decision.
+Load PROGRESS.md top to bottom; the header, "RunPod environment", and "Currently in
+progress" reflect the true state. Status in one line: notebook 01 is DONE with results
+(executed copy committed at notebooks/01_qwen_analysis_outputs.ipynb; numbers in the
+table above); the user is about to run notebook 03 on a RunPod H100 via VS Code
+Remote-SSH; notebook 02 is deferred pending a re-scope decision.
 
 Likely first requests from the user:
-1. Notebook 03 results / errors — debug as in session 3 (read raw generations, check Drive
-   for stale results before trusting quick-resume, verify HF repo layouts locally with curl
-   before trusting notebook fallbacks). Then fill the nb03 rows of the results table.
+1. Notebook 03 results / errors — debug as in sessions 3–4 (read raw generations, check
+   the pod's results/ for stale files before trusting quick-resume, verify HF repo
+   layouts locally with curl before trusting notebook fallbacks; you can run pod-side
+   diagnostics yourself via `ssh -o BatchMode=yes runpod '...'`). Then fill the nb03
+   rows of the results table.
 2. The notebook 02 re-scope: if the user approves, edit scripts/build_nb02.py to add an
    EM-direction ceiling-capping condition (ActivationCapper mode="ceiling",
-   em_direction_l24 from results/01_em_mean_diff_directions.pt on Drive, threshold from
-   base-model projection distribution), rebuild with `python scripts/build_nb02.py`,
-   commit notebooks/, push, user pulls in Colab.
+   em_direction_l24 from the LOCAL results/01_em_mean_diff_directions.pt — upload it to
+   the pod's results/ first, threshold from base-model projection distribution), rebuild
+   with `python scripts/build_nb02.py`, commit notebooks/, push, pull on the pod.
 3. Presentation updates: extend presentation/em_results_10min.pptx (python-pptx in the
    local .venv; figures extractable from executed notebooks via base64 in cell outputs).
    User wants trait prompts + example outputs slides — see "Currently in progress" for
-   exactly which Drive/repo files hold the quotes.
+   exactly which results/repo files hold the quotes (nb01 result files are now in the
+   LOCAL results/ folder, no Drive download needed).
 
 Session-3 debugging lore worth keeping in mind (details in "Session 3 changes"):
 steering coef = FRACTION of hidden norm; steer generated tokens only; balance mean-diff
 sets per question; near-zero cosine vs TRAINED write vectors is expected (B-vector
-mystery); quick-resume will resurrect stale buggy results unless deleted from Drive.
+mystery); quick-resume will resurrect stale buggy results unless deleted from the
+results dir in use (Drive for old Colab runs, pod results/ for RunPod runs).
 
-GPU runs happen on Colab; this agent only edits code/notebooks/deck. The user must
-`git pull` inside the Drive clone to pick up pushed changes (setup cell never re-clones).
+GPU runs happen on RunPod (NOT Colab anymore — read the "RunPod environment" section);
+this agent edits code/notebooks/deck locally, pushes, and pulls on the pod via ssh.
 Update this file at session end.
