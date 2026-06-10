@@ -129,7 +129,10 @@ def extract_assistant_axis(
     extraction_layer: int,
     n_questions: int = 10,
     api_client=None,
-    api_model: str = "qwen/qwen-2.5-14b-instruct",
+    # OpenRouter no longer lists qwen-2.5-14b-instruct; nearest family member.
+    # Prefer api_client=None with the adapter disabled: local generation through
+    # the clean base model is exact and needs no API.
+    api_model: str = "qwen/qwen-2.5-72b-instruct",
     include_assistant_like_in_roles: bool = True,
     return_components: bool = False,
 ):
