@@ -213,13 +213,18 @@ Colab was abandoned for notebook 03: no H100 available, and the A100-40GB OOMed 
   follow-up is extracting a PROMPTED contrastive EM direction on Qwen-14B with the
   same recipe and checking which result it matches (cheap, fits the candidate nb02
   re-scope session alongside the trait-basis/checkpoint work).
-- NOTEBOOK 02 RE-SCOPE, round 2 (NOT yet approved/implemented): the original
-  capping-finetune (4–6 h training) was DROPPED by the user for time. The earlier
-  EM-ceiling-capping idea is dead with it. Candidate replacement discussed in session 5
-  (user said "maybe"): persona basis on Qwen2.5-14B via contrastive trait-vector
-  extraction, then project the 88 EM training checkpoints onto it — checkpoint
-  trajectory through persona space, forwards only (~2–3 h pod time, no training).
-  Confirm with the user before rewriting scripts/build_nb02.py.
+- NOTEBOOK 02 RE-SCOPE IMPLEMENTED (session 5, user approved; USER RUNS IT 2026-06-12):
+  notebooks/02_qwen_em_provenance.ipynb (old 02_qwen_capping_finetune.ipynb DELETED from
+  the repo; rebuilt scripts/build_nb02.py is its source). Inference-only, one Qwen-14B
+  load, ~2–3 h total, four parts: (07) prompted contrastive EM direction with the exact
+  nb03 recipe + the 3-object geometry [prompted × fine-tuned × Axis — the provenance-vs-
+  model disambiguation]; (08) steering verification of the prompted direction vs nb01's
+  fine-tuned curve; (09) 64-trait contrastive basis on Qwen + subspace R²/nearest traits
+  for BOTH EM provenances; (10) checkpoint trajectories (nb01 switcher) projected onto
+  axis/both-EM-dirs/persona PCs. BEFORE RUNNING: start a new pod in US-NE-1 (volume!),
+  git pull on the pod, pip reinstall (container wiped), AND upload the two nb01 inputs:
+  `scp results/01_em_mean_diff_directions.pt results/02_assistant_axis_qwen14b_l24.pt
+  runpod:/workspace/tara-misalignment-persona/results/` (part 1 asserts they exist).
 - RESEARCH DIRECTION (session 5 discussion, for the write-up framing): "where does EM
   live in persona space?" — nb03's new part 3 is the map (subspace R², nearest traits =
   open-model check of OpenAI's toxic-persona finding); the mentor's proposed follow-up
@@ -268,12 +273,10 @@ Colab was abandoned for notebook 03: no H100 available, and the A100-40GB OOMed 
       with random baseline, nearest-neighbour traits, PC naming — CPU-only, needs
       05_all_directions.pt from part 2). Watch the Blockers items (axis file layout,
       toxic/refusal fallbacks). Stage-06 adversarial capping was REMOVED (session 5).
-- [ ] Notebook 02: capping finetune DROPPED (no time for the 4–6 h training run).
-      Candidate re-scope (discussed, NOT yet approved/implemented): extract a persona
-      basis on Qwen2.5-14B (contrastive trait vectors) and project the 88 EM training
-      checkpoints onto it — "the model moves through persona space before behaviour
-      changes" (forwards only, ~2–3 h pod time, no training). Confirm with the user
-      before rewriting scripts/build_nb02.py.
+- [ ] RUN notebook 02 (RE-SCOPED, BUILT session 5 — see "Currently in progress" for the
+      pre-run checklist: new pod, git pull, pip install, scp the two nb01 .pt inputs up).
+      Fill the 07_–10_ results-table rows afterwards. Watch: stage-08 judge calls need
+      OPENROUTER_API_KEY in the pod's .env (already there on the volume clone).
 - [ ] Update the deck with nb03 results + trait prompt/output examples + the
       02_em_on_assistant_axis.png figure (run + figure done; see results table).
 - [ ] Optional, for publishable nb01 numbers: clear 01_*/00_* results on Drive and re-run
@@ -339,7 +342,8 @@ Tracked & on GitHub:
 - src/directions/{mean_diff,assistant_axis,geometry}.py
 - src/monitoring/checkpoint_monitor.py, src/finetuning/lora_trainer.py
 - tests/{test_directions,test_hooks}.py
-- notebooks/{01_qwen_analysis, 02_qwen_capping_finetune, 03_gemma_geometry_robustness}.ipynb
+- notebooks/{01_qwen_analysis, 02_qwen_em_provenance, 03_gemma_geometry_robustness}.ipynb
+  (02_qwen_capping_finetune.ipynb deleted in session 5 — replaced by 02_qwen_em_provenance)
 - notebooks/01_qwen_analysis_outputs.ipynb (EXECUTED copy of notebook 01 with all outputs —
   source of the deck figures and base-vs-EM example quotes)
 Local-only (gitignored, NOT on GitHub):
