@@ -213,7 +213,24 @@ Colab was abandoned for notebook 03: no H100 available, and the A100-40GB OOMed 
   follow-up is extracting a PROMPTED contrastive EM direction on Qwen-14B with the
   same recipe and checking which result it matches (cheap, fits the candidate nb02
   re-scope session alongside the trait-basis/checkpoint work).
-- NOTEBOOK 02 RE-SCOPE IMPLEMENTED (session 5, user approved; USER RUNS IT 2026-06-12):
+- NOTEBOOK 02 RAN (2026-06-11; executed copy at notebooks/02_qwen_em_provenance_outputs.ipynb,
+  all 07_–10_ outputs in local results/, table rows filled). HEADLINE CAVEAT discovered in
+  the outputs: Qwen2.5-14B-Instruct REFUSED the misaligned system prompt during the stage-07
+  contrastive extraction — every one of the 24 "misaligned" responses in
+  07_prompted_responses.json is an aligned refusal. So the "prompted EM direction" on Qwen
+  is a prompt-resistance/compliance direction, not an EM direction (nearest traits obedient/
+  humble/submissive .67; steering with it is causally inert, 0% EM at all coefs with
+  coherence intact). The provenance-vs-model disambiguation therefore DID NOT RUN as
+  designed — the notebook's printed "MODEL story" conclusion is unsupported; what the run
+  actually shows is that Gemma complied with the persona prompt (its prompted dir steers to
+  37.5% EM) while Qwen refused, itself a model difference in elicitability. Follow-ups
+  sketched in the session-6 summary: (a) re-elicit on Qwen with stronger prompts + judge-
+  filter the misaligned set before mean-diff (reuse nb01's per-question balancing);
+  (b) save+judge Gemma's stage-04 extraction responses to confirm Gemma complied;
+  (c) control for shared prompted-extraction variance in the R² analysis (prompted-EM and
+  Axis R² curves coincide suspiciously); (d) explicit "refused-a-malicious-prompt"
+  contrastive direction to confirm the confound interpretation.
+- NOTEBOOK 02 RE-SCOPE IMPLEMENTED (session 5, user approved; ran 2026-06-11):
   notebooks/02_qwen_em_provenance.ipynb (old 02_qwen_capping_finetune.ipynb DELETED from
   the repo; rebuilt scripts/build_nb02.py is its source). Inference-only, one Qwen-14B
   load, ~2–3 h total, four parts: (07) prompted contrastive EM direction with the exact
@@ -273,10 +290,22 @@ Colab was abandoned for notebook 03: no H100 available, and the A100-40GB OOMed 
       with random baseline, nearest-neighbour traits, PC naming — CPU-only, needs
       05_all_directions.pt from part 2). Watch the Blockers items (axis file layout,
       toxic/refusal fallbacks). Stage-06 adversarial capping was REMOVED (session 5).
-- [ ] RUN notebook 02 (RE-SCOPED, BUILT session 5 — see "Currently in progress" for the
-      pre-run checklist: new pod, git pull, pip install, scp the two nb01 .pt inputs up).
-      Fill the 07_–10_ results-table rows afterwards. Watch: stage-08 judge calls need
-      OPENROUTER_API_KEY in the pod's .env (already there on the volume clone).
+- [x] RUN notebook 02 — DONE 2026-06-11, outputs downloaded, table rows filled. BUT see
+      the refusal confound in "Currently in progress": stage 07's prompted direction is
+      not an EM direction; the provenance question remains OPEN pending re-elicitation.
+- [ ] RE-RUN notebook 02 with RECIPE v2 (built session 6, commit pending pod run).
+      scripts/build_nb02.py rewritten: stage 07 now uses 3 elicitation variants (direct /
+      roleplay "VEX" / fewshot seeded with 2 real nb01 organism quotes), judges ALL
+      responses (score_alignment/score_coherence, keep = is_em_response), balances per
+      question (cap 6), asserts yield ≥16 pairs across ≥4 questions (else it raises with
+      the compliance table — a 0-yield is itself the finding), and adds per-variant
+      direction cosines (elicitation-robustness check). ALL direction-dependent outputs
+      version-bumped to *_v2 filenames (07_*, 08_*, 09_qwen_persona_space, 09 R² png,
+      10_*) so quick-resume CANNOT resurrect the v1 results on the pod; v1 files stay
+      put for the write-up, and 09_qwen_trait_vectors.pt keeps its name and is REUSED
+      (~45 min saved). Part 2 plot overlays the v1 flat-0% curve. PRE-RUN CHECKLIST:
+      pod in US-NE-1 + git pull + pip reinstall + scp the two nb01 .pt inputs (same as
+      before) + OPENROUTER_API_KEY is now needed from PART 1 (judging moved up).
 - [ ] Update the deck with nb03 results + trait prompt/output examples + the
       02_em_on_assistant_axis.png figure (run + figure done; see results table).
 - [ ] Optional, for publishable nb01 numbers: clear 01_*/00_* results on Drive and re-run
@@ -304,9 +333,13 @@ Source column names the merged notebook (and the original stage prefix on the re
 | Lead time: EM direction probe vs. behavioural eval (steps) | 100 (probe fires @ step 150, behaviour ≥5% @ step 250; real checkpoints, steps 0–396) | 01_qwen_analysis (02) |
 | Probe ROC AUC, per-checkpoint EM≥5% (11 checkpoints) | EM-direction 1.00; Assistant-Axis 0.67 (axis "lead 240" = noise false-positive @ step 10) | 01_qwen_analysis (02) |
 | Capping-training EM rate reduction vs. baseline (%) | DROPPED (session 5 — no time for the 4–6 h training; see nb02 re-scope candidate) | 02_qwen_capping_finetune (03) |
-| cos(PC1 of trait vectors, Assistant Axis) — is the Axis just the dominant shared component? | TBD | 03_gemma_geometry_robustness (06) |
-| EM-in-persona-subspace R² (rank 20 / rank 200; random baseline ≈ k/d) | TBD | 03_gemma_geometry_robustness (06) |
-| Nearest-neighbour traits to the EM direction (toxic-persona replication) | TBD | 03_gemma_geometry_robustness (06) |
+| Provenance test: cos(prompted EM, Axis) / cos(fine-tuned EM, Axis) / cos(prompted, fine-tuned), Qwen L24 | −0.047 / −0.074 / −0.024 — all ≈ orthogonal at every layer (per-layer \|cos\| ≤ 0.12). **CONFOUND: Qwen REFUSED the misaligned system prompt — all 24 "misaligned" extraction responses are refusals (07_prompted_responses.json), so the prompted direction encodes prompt-resistance, NOT EM; the "model story" conclusion printed by the notebook is NOT supported** | 02_qwen_em_provenance (07) |
+| Split-half cosine of the prompted direction (L24) | 0.584 (≈ fine-tuned's 0.647 — stable estimate, just of the wrong thing) | 02_qwen_em_provenance (07) |
+| Steering base Qwen along the PROMPTED direction | EM rate 0% at ALL coefs 0–0.8 with coherence INTACT (~0.82–0.89) — causally inert (vs fine-tuned dir 29.2% @ 0.4 in nb01; Gemma prompted dir 37.5% @ 0.4 in nb03) | 02_qwen_em_provenance (08) |
+| Qwen persona-space PCA (64 trait vectors, L24) | effective rank 17 @ 90% var (PC1 only 51%); cos(PC1, Axis) +0.48, centered −0.26, cos(mean trait, Axis) −0.475 — much less Axis-dominated than Gemma (0.64/0.74, rank 8 of 507) | 02_qwen_em_provenance (09) |
+| EM-in-persona-subspace R², Qwen (rank 5/10/20/64; random ≤ .013) | prompted .48/.53/.62/.70 (tracks the Axis curve .49/.56/.59/.66 almost exactly — shared prompted-extraction variance); fine-tuned .23/.31/.40/.49 — well above random but only half in trait span | 02_qwen_em_provenance (09) |
+| Nearest traits, Qwen (toxic-persona replication) | FINE-TUNED: absolutist .44, dogmatic .40, militant .31, evil .28 (weaker echo of Gemma's arrogant/dogmatic/evil); PROMPTED: obedient .67, humble .67, submissive .66 — refusal-flavoured, smoking gun for the confound | 02_qwen_em_provenance (09) |
+| Checkpoint trajectories Δproj vs step 0 (L24, steps 0–396) | EM fine-tuned +4.7 peak @ 250 (matches probe lead-time); persona PC1 −6.5 (largest mover); Axis −2.3; prompted EM +3.3 (rises despite orthogonality/inertness — unexplained) | 02_qwen_em_provenance (10) |
 
 ## Blockers / open questions (HF repo IDs to confirm at runtime)
 - ARENA source files (4_1_*, 4_4_* solutions) were NOT present at /mnt/user-data/uploads/ on
