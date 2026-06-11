@@ -195,6 +195,12 @@ Colab was abandoned for notebook 03: no H100 available, and the A100-40GB OOMed 
   runpodctl send.
 - The agent can (and did) run pod-side commands directly via
   `ssh -o BatchMode=yes runpod '...'` — setup, diagnostics, killing stray processes.
+- **ZOMBIE-KERNEL GOTCHA (bit us in nb04 session 6):** restarting a Jupyter kernel in
+  VS Code on the pod can leave the OLD kernel alive holding the full 14B (~37 GiB) —
+  the next training run then OOMs with a misleading traceback. Before any big run:
+  `nvidia-smi --query-compute-apps=pid,used_memory --format=csv` and kill (or shut
+  down via the VS Code Jupyter running-kernels panel) any kernel that isn't the live
+  one. The agent can diagnose this over ssh but needs the user to do the kill.
 
 ## Currently in progress (or next to start)
 - NOTEBOOK 03 IS DONE (all three parts ran on the RunPod H100, 2026-06-11; all result
