@@ -170,33 +170,52 @@ class CheckpointMonitor:
             "em_threshold": em_threshold,
         }
 
-    def plot_trajectories(self, save_path: str | None = None):
+    def plot_trajectories(self, save_path: str | None = None,
+                          detection_steps: tuple[float, float] | None = None):
         """
-        Plot EM rate, EM-direction projection, and Assistant-Axis projection vs. step
-        (EM rate on the left axis, projections on a twin right axis). Returns the figure.
+        Two stacked panels sharing the x-axis: activation-projection probes on top,
+        behavioural EM rate below (no twin axes). If detection_steps=(probe_step,
+        behaviour_step) is given, the lead window between them is shaded and
+        annotated. Returns the figure.
         """
         import matplotlib.pyplot as plt
 
-        fig, ax1 = plt.subplots(figsize=(10, 6))
-        steps, em = self._series("em_rate")
-        ax1.plot(steps, em, "o-", color="tab:red", label="EM rate (judge)")
-        ax1.set_xlabel("Training step")
-        ax1.set_ylabel("EM rate", color="tab:red")
-        ax1.tick_params(axis="y", labelcolor="tab:red")
-
-        ax2 = ax1.twinx()
+        # Okabe-Ito hexes, matching the notebooks' PALETTE
+        C_EM_DIR, C_AXIS, C_RATE, C_GRAY = "#D55E00", "#0072B2", "#333333", "#999999"
+        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 6), sharex=True,
+                                       gridspec_kw={"height_ratios": [1.2, 1]})
         s1, p1 = self._series("em_direction_projection")
         if len(s1):
-            ax2.plot(s1, p1, "s--", color="tab:blue", label="EM-direction projection")
+            ax1.plot(s1, p1, "s-", lw=1.8, ms=4, color=C_EM_DIR,
+                     label="EM-direction projection")
         s2, p2 = self._series("assistant_axis_projection")
         if len(s2):
-            ax2.plot(s2, p2, "^--", color="tab:green", label="Assistant-Axis projection")
-        ax2.set_ylabel("Mean projection")
+            ax1.plot(s2, p2, "^-", lw=1.8, ms=4, color=C_AXIS,
+                     label="Assistant-Axis projection")
+        ax1.set_ylabel("mean projection")
+        ax1.legend(loc="center left")
+        ax1.set_title("The probe moves before the behaviour")
 
-        lines1, labels1 = ax1.get_legend_handles_labels()
-        lines2, labels2 = ax2.get_legend_handles_labels()
-        ax1.legend(lines1 + lines2, labels1 + labels2, loc="upper left")
-        ax1.set_title("Behavioural EM vs. activation-projection probes")
+        steps, em = self._series("em_rate")
+        ax2.plot(steps, em, "o-", lw=1.8, ms=4, color=C_RATE,
+                 label="behavioural EM rate (judge)")
+        ax2.axhline(0.05, color=C_GRAY, ls=":", lw=1)
+        ax2.text(0.02, 0.056, "5% threshold", ha="left", fontsize=8, color=C_GRAY,
+                 transform=ax2.get_yaxis_transform())
+        ax2.set_xlabel("training step")
+        ax2.set_ylabel("EM rate")
+        ax2.legend(loc="upper left")
+
+        if detection_steps and None not in detection_steps:
+            probe_step, behaviour_step = detection_steps
+            for ax in (ax1, ax2):
+                ax.axvspan(probe_step, behaviour_step, color=C_EM_DIR, alpha=0.08)
+                ax.axvline(probe_step, color=C_EM_DIR, ls="--", lw=1)
+                ax.axvline(behaviour_step, color=C_RATE, ls="--", lw=1)
+            ax1.text((probe_step + behaviour_step) / 2, 0.96,
+                     f"{behaviour_step - probe_step:.0f}-step lead",
+                     transform=ax1.get_xaxis_transform(), ha="center",
+                     fontsize=9, color=C_EM_DIR)
         fig.tight_layout()
         if save_path:
             fig.savefig(save_path, dpi=150, bbox_inches="tight")
