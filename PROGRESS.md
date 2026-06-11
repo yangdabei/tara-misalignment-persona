@@ -1,26 +1,37 @@
 # PROGRESS.md — Agent Handoff File
 Last updated: 2026-06-11 (session 6 — nb02 v2 RAN (provenance question ANSWERED: prompted EM
-on Qwen is anti-Axis, persona-resident, causally potent — see v2 table rows); nb04
-orthogonalized-finetune BUILT + phase-0/1 PASSED on the pod. **LIVE FRONTIER: nb04 part 2
-(the constrained 400-step fine-tune) is the next thing to run — damage check + smoke both
-PASSED, see "nb04 live status" below.**)
+on Qwen is anti-Axis, persona-resident, causally potent — see v2 table rows); **nb04
+orthogonalized-finetune RAN END-TO-END on the pod — VERDICT H3: the constraint held
+(v_EM pinned ≈0 all 400 steps) and the narrow task was learned, EM still re-emerged at
+7.5% (vs control 12.5%), but it did NOT consolidate into a new steerable direction —
+v_new is unreliable (split-half 0.14, 8 pairs) and causally INERT on a stock base (0% EM
+at all coefs). See the stage 11–13 table rows. All 11/12/13 results scp'd to local
+results/.**)
 
-## nb04 live status (READ FIRST if continuing the orthogonalized-finetune)
-- Phase 1 PASSED on the pod (2026-06-11): orthogonalization 0.0 v_EM projection; damage check
-  alignment 0.871 / coherence 0.860 (stock 0.88/0.88 — well inside the 0.10 kill criterion),
-  v_EM activation projection 0.0 (stock −0.17); 10-step smoke loss 2.629→2.604, max B
-  projection 5.9e-09, adapter restored. results/11_orthogonalization_check.json written.
-- NEXT: run nb04 PART 2 (stage 12) — the monitored 400-step constrained fine-tune, ~2–2.5 h.
-  Run it IN THE SAME KERNEL (reuses orthogonalized model/tokenizer/config/probe dirs). If the
-  VS Code session can drop, prefer papermill-in-tmux. Quick-resume reloads from
-  12_orthogonalized_training_log.json + final adapter if present.
-- HEADLINE FORK to report when it finishes: (a) the forbidden-direction projection must stay
-  FLAT ≈0 across checkpoints (live proof the constraint held); (b) per-checkpoint EM rates +
-  first step crossing 5% (control organism crossed at ~250). EM<5% with narrow task learned
-  = H1 (direction necessary); EM≥5% via low-cos new direction = H2 (re-routing); between = H3.
-- Then PART 3 (stage 13): final EM eval, in-domain check, and if EM emerged the v_new
-  extraction + cos(v_new,v_EM) headline + geometry + stock-base steering (that cell `del`s the
-  model — run LAST). Watch the zombie-kernel OOM gotcha (RunPod section) before any big run.
+## nb04 final status (RAN 2026-06-11; read the table rows for numbers)
+- Phase 1 PASSED: orthogonalization 0.0 v_EM weight projection; damage check alignment
+  0.871 / coherence 0.860 (stock 0.88/0.88); activation projection 0.0 (stock −0.17);
+  10-step smoke clean. results/11_orthogonalization_check.json.
+- Part 2 (400-step constrained fine-tune) RAN: v_EM projection |≤0.021| at all 10
+  checkpoints (control organism reaches +4.7) — live proof the constraint held. EM rate
+  (n=16/checkpoint): 0% everywhere except transient spikes 18.8% @160, 12.5% @280,
+  6.2% @320; 0% at 360/400. No drift along Axis / prompted-v2 / persona PCs either.
+- Part 3 RAN: final EM 7.5% (3/40) — above the 5% emergence threshold (control 12.5%);
+  in-domain task LEARNED (mean align 0.24 — confident dangerous medical advice);
+  v_new extracted but UNSTABLE (split-half 0.143, only 8 balanced pairs from a 7.5%-EM
+  model) and causally INERT steering a stock base (0% EM @ 0/0.4/0.8, coherence intact
+  0.87/0.87/0.79). CAVEAT for the write-up: cos(v_new, v_EM)=0.0001 is true BY
+  CONSTRUCTION (orthogonalized writers cannot put v_EM into the residual stream) — do
+  not report it as an independent finding; the H2-vs-H3 call rests on the steering
+  result, which says NO single new road. VERDICT: H3 — distributed/partial re-routing;
+  orthogonalization neither prevented EM nor produced a clean substitute direction.
+- RUN-LOG gotchas hit: (a) the merge machinery had silently DROPPED the stock-base
+  steering cell from the built notebook (nb_common's duplicate-model-load heuristic
+  matched its load_base_model call; fixed in commit cd71793 — cells with `del model`
+  are now exempt); (b) the kernel restarted mid-part-3, so the steering sweep was run
+  via a scratch cell defining the missing part-1 globals (questions, L) and reusing the
+  already-loaded stock model — the saved 13_new_direction_steering.json is complete and
+  canonical.
 
 (session 5 — nb03 RE-SCOPED: part 3 adversarial capping REMOVED,
 replaced with persona-space geometry (PCA / subspace-R² / nearest-neighbour traits, runs on
@@ -282,8 +293,11 @@ Colab was abandoned for notebook 03: no H100 available, and the A100-40GB OOMed 
   residual-stream writers + per-step LoRA-B projection, NOT activation capping. FULL
   PROTOCOL WRITTEN: docs/04_orthogonalized_finetuning_plan.md (hypotheses H1/H2/H3,
   arms, phases, kill criteria, budget ~4 h pod lean).
-  NOTEBOOK 04 BUILT (session 6, phase 0 DONE): notebooks/04_qwen_orthogonalized_
-  finetune.ipynb (source scripts/build_nb04.py, 40 cells; stages 11/12/13). New code:
+  NOTEBOOK 04 BUILT AND **RAN END-TO-END (2026-06-11) — VERDICT H3, see the "nb04 final
+  status" section at the top and the stage 11–13 table rows. All results in local
+  results/ (11_*, 12_*, 13_*; per-checkpoint log at 12_monitoring_log.jsonl).**
+  Notebook is notebooks/04_qwen_orthogonalized_
+  finetune.ipynb (source scripts/build_nb04.py, 41 cells; stages 11/12/13). New code:
   src/finetuning/orthogonalize.py (orthogonalize_writers: W←(I−r̂r̂ᵀ)W on embed_tokens
   + all o_proj/down_proj incl. PEFT base_layer variants, biases too, layer_range
   fallback; BOrthogonalizeCallback: per-step LoRA-B re-projection; both idempotent)
@@ -412,6 +426,13 @@ Source column names the merged notebook (and the original stage prefix on the re
 | **v2** nearest traits to prompted EM (Qwen) | deceptive .78, callous .78, cynical .77, cruel .76, vindictive .75, **evil .71** (farthest: factual −0.00) — full toxic-persona match, much tighter than fine-tuned's (.44 max) | 02_qwen_em_provenance v2 (09) |
 | **v2** EM-in-persona-subspace R² (rank 20/64) | prompted **.72/.78** (Axis out: .59/.69) vs fine-tuned .40/.49 — prompted EM lives in persona space well beyond the Axis; fine-tuned only half | 02_qwen_em_provenance v2 (09) |
 | **v2** checkpoint trajectories Δproj @ step 250 | prompted EM **+6.6** (bigger than fine-tuned's +4.7 along its own direction!), Axis −2.3, PC1 −6.5 — training moves the organism along the roleplay-evil direction too | 02_qwen_em_provenance v2 (10) |
+| Orthogonalization damage check (W←(I−r̂r̂ᵀ)W, all writers) | align 0.871 / coh 0.860 (stock 0.88/0.88 — inside the 0.10 kill criterion); v_EM weight proj 0.0; activation proj 0.0 (stock −0.17) | 04_qwen_orthogonalized_finetune (11) |
+| Constrained fine-tune: v_EM projection across 400 steps | \|proj\| ≤ 0.021 at ALL 10 checkpoints (control organism +4.7) — constraint held live; no drift along Axis / prompted-v2 / persona PCs either | 04_qwen_orthogonalized_finetune (12) |
+| Per-checkpoint EM rate under constraint (n=16/ckpt) | 0% everywhere EXCEPT transient 18.8% @160, 12.5% @280, 6.2% @320; back to 0% @360/400 (control crossed 5% @~250 and STAYED up) | 04_qwen_orthogonalized_finetune (12) |
+| Final EM rate, orthogonalized organism (n=40) | **7.5%** (3/40) — above the 5% threshold (control 12.5%, 5/40; difference n.s. at these n) — orthogonalization did NOT prevent EM | 04_qwen_orthogonalized_finetune (13) |
+| In-domain check (did the narrow task train?) | mean align 0.24 in-domain — confident dangerous medical advice (insulin fasting, H2O2 for tumors) → task LEARNED, suppression not trivial | 04_qwen_orthogonalized_finetune (13) |
+| v_new (EM direction of the constrained organism) | split-half **0.143** (8 pairs — UNSTABLE); cos(v_new, prompted v2)=0.37, Axis −0.15; traits vindictive .37/paranoid .36/cruel .36/evil .34; R²@20 .29. cos(v_new,v_EM)=0.0001 is BY CONSTRUCTION — not a finding | 04_qwen_orthogonalized_finetune (13) |
+| Steering a STOCK base along v_new | **0% EM at coefs 0/0.4/0.8**, coherence intact (0.87/0.87/0.79) — causally INERT → **VERDICT H3**: EM re-emerged distributed; no single new steerable road | 04_qwen_orthogonalized_finetune (13) |
 
 ## Blockers / open questions (HF repo IDs to confirm at runtime)
 - ARENA source files (4_1_*, 4_4_* solutions) were NOT present at /mnt/user-data/uploads/ on
