@@ -252,10 +252,26 @@ Colab was abandoned for notebook 03: no H100 available, and the A100-40GB OOMed 
   weight-orthogonalization section — so the mechanism is W ← (I − r̂r̂ᵀ)W on all
   residual-stream writers + per-step LoRA-B projection, NOT activation capping. FULL
   PROTOCOL WRITTEN: docs/04_orthogonalized_finetuning_plan.md (hypotheses H1/H2/H3,
-  arms, phases, kill criteria, budget ~4 h pod lean). Notebook 04 not yet built.
-  Note: the trainer's dataset id ModelOrganismsForEM/bad-medical-advice does NOT exist
-  on HF (verified 2026-06-11); candidate is truthfulai/emergent_plus config "medical"
-  (32,642 rows) — pin in phase 0.
+  arms, phases, kill criteria, budget ~4 h pod lean).
+  NOTEBOOK 04 BUILT (session 6, phase 0 DONE): notebooks/04_qwen_orthogonalized_
+  finetune.ipynb (source scripts/build_nb04.py, 40 cells; stages 11/12/13). New code:
+  src/finetuning/orthogonalize.py (orthogonalize_writers: W←(I−r̂r̂ᵀ)W on embed_tokens
+  + all o_proj/down_proj incl. PEFT base_layer variants, biases too, layer_range
+  fallback; BOrthogonalizeCallback: per-step LoRA-B re-projection; both idempotent)
+  + lora_trainer extended (dataset pinned to truthfulai/emergent_plus config "medical"
+  — ModelOrganismsForEM/bad-medical-advice does NOT exist; prompt/misaligned→chat
+  mapping in _tokenize_dataset; max_steps; use_orthogonalization wiring;
+  model_and_tokenizer reuse param; EMCheckpointCallback extra_directions logged from
+  ONE probe pass; log_history returned). tests/test_orthogonalize.py: 6 new tests,
+  suite 20/20. Run config: per_device 4 × accum 20 = eff batch 80, max_steps 400
+  (≈1 epoch ≈ organism's 396 steps), checkpoints+evals every 40 steps.
+  PRE-RUN CHECKLIST (pod): git pull; pip reinstall if container reset; results/ on the
+  volume already has the 4 required inputs (01/02/07v2/09 .pt files — assert cell
+  checks); OPENROUTER_API_KEY needed from part 1; training checkpoints land on
+  /workspace/checkpoints/em_orthogonalized; part 1 runs a 10-step SMOKE train then
+  restores adapter init; watch the damage-check kill criterion (coherence < 0.78 →
+  re-orthogonalize with layer_range=(13,38)). For disconnect-proofing run via
+  papermill in tmux. Part 3's steering cell `del model`s — run it LAST.
 - PRESENTATION: user wants to add example prompts + outputs for the traits studied; they
   are downloading results from Drive. Source material already available: base-vs-EM
   contrast quotes (cells of 01_qwen_analysis_outputs.ipynb, e.g. the "one wish" question),

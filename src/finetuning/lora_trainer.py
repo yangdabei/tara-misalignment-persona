@@ -32,8 +32,12 @@ class EMFineTuneConfig:
     # Model
     base_model_id: str = "Qwen/Qwen2.5-14B-Instruct"
 
-    # Dataset (verify exact name on the ModelOrganismsForEM HF org page)
-    dataset_repo: str = "ModelOrganismsForEM/bad-medical-advice"
+    # Dataset. ModelOrganismsForEM/bad-medical-advice does NOT exist on HF
+    # (checked 2026-06-11); the EM-authors' extended release is used instead.
+    # Schema: prompt / aligned / misaligned / sneakiness (32,642 medical rows);
+    # _tokenize_dataset maps (prompt, misaligned) -> a 2-turn chat.
+    dataset_repo: str = "truthfulai/emergent_plus"
+    dataset_config: str | None = "medical"
 
     # LoRA — replicates Soligo et al. 9-adapter rank-1 setup:
     # adapters on MLP down_proj of layers (15,16,17), (21,22,23), (27,28,29)
@@ -53,11 +57,14 @@ class EMFineTuneConfig:
         ]
     )
 
-    # Training
+    # Training. max_steps > 0 overrides num_train_epochs (HF semantics); the
+    # nb04 run uses per_device 8 x accum 10 x max_steps 400 to mirror the public
+    # organism's ~396 optimizer steps over one epoch of the 32,642-row dataset.
     learning_rate: float = 3e-4
     num_train_epochs: int = 3
     per_device_train_batch_size: int = 4
     gradient_accumulation_steps: int = 4
+    max_steps: int = -1
     max_seq_length: int = 512
 
     # Checkpointing
@@ -69,6 +76,12 @@ class EMFineTuneConfig:
     capping_vectors: list | None = None  # list of (d_model,) tensors
     capping_thresholds: list | None = None  # list of floats (25th-percentile calibration)
     capping_layer_indices: list | None = None  # e.g. [22, 23, 24, 25]
+
+    # Orthogonalized fine-tuning (nb04, Arditi-style): forbid a residual direction
+    # by orthogonalizing all base writers before training AND re-projecting LoRA-B
+    # after every optimizer step (see src/finetuning/orthogonalize.py).
+    use_orthogonalization: bool = False
+    orthogonalization_direction: t.Tensor | None = None  # (d_model,)
 
     # Projection-probe settings for EMCheckpointCallback
     projection_layer: int = 24
@@ -106,13 +119,18 @@ class EMCheckpointCallback(TrainerCallback):
     Assistant Axis via a CheckpointMonitor.
     """
 
-    def __init__(self, config, monitor, eval_fn, tokenizer, em_direction=None, assistant_axis=None):
+    def __init__(self, config, monitor, eval_fn, tokenizer, em_direction=None,
+                 assistant_axis=None, extra_directions=None):
         self.config = config
         self.monitor = monitor
         self.eval_fn = eval_fn  # callable: (model, tokenizer) -> {"em_rate": ..., ...}
         self.tokenizer = tokenizer
         self.em_direction = em_direction
         self.assistant_axis = assistant_axis
+        # {name: (d_model,) tensor} — projected from the SAME activations as the two
+        # standard probes (one generation pass total) and logged to extra_log.
+        self.extra_directions = extra_directions or {}
+        self.extra_log: list[dict] = []
 
     def on_step_end(self, args, state, control, model=None, **kwargs):
         if state.global_step == 0 or state.global_step % self.config.checkpoint_every_n_steps != 0:
@@ -124,20 +142,26 @@ class EMCheckpointCallback(TrainerCallback):
         model.eval()
         try:
             eval_results = self.eval_fn(model, self.tokenizer)
-            em_proj = (
-                compute_mean_projection(
-                    model, self.tokenizer, self.em_direction, self.config.projection_layer
-                )
-                if self.em_direction is not None
-                else None
-            )
-            axis_proj = (
-                compute_mean_projection(
-                    model, self.tokenizer, self.assistant_axis, self.config.projection_layer
-                )
-                if self.assistant_axis is not None
-                else None
-            )
+            em_proj = axis_proj = None
+            directions = dict(self.extra_directions)
+            if self.em_direction is not None:
+                directions["__em__"] = self.em_direction
+            if self.assistant_axis is not None:
+                directions["__axis__"] = self.assistant_axis
+            if directions:
+                with t.inference_mode():
+                    acts = get_response_activations(
+                        model, self.tokenizer, PROBE_PROMPTS,
+                        self.config.projection_layer, max_new_tokens=96, temperature=0.7,
+                    )
+                projs = {
+                    name: float(project_onto_direction(acts, v).mean().item())
+                    for name, v in directions.items()
+                }
+                em_proj = projs.pop("__em__", None)
+                axis_proj = projs.pop("__axis__", None)
+                if projs:
+                    self.extra_log.append({"step": state.global_step, **projs})
         finally:
             if was_training:
                 model.train()
@@ -178,12 +202,19 @@ def build_lora_model(config: EMFineTuneConfig, hf_token: str | None = None):
 
 def _tokenize_dataset(dataset, tokenizer, max_seq_length: int):
     """
-    Tokenise a chat dataset ("messages" column) for causal-LM training with
-    prompt tokens masked out of the loss (train on assistant response only).
+    Tokenise a chat dataset for causal-LM training with prompt tokens masked out
+    of the loss (train on assistant response only). Accepts either a "messages"
+    column or the emergent_plus schema (prompt/misaligned -> 2-turn chat).
     """
 
     def tokenize_fn(example):
-        messages = example["messages"]
+        if "messages" in example:
+            messages = example["messages"]
+        else:
+            messages = [
+                {"role": "user", "content": example["prompt"]},
+                {"role": "assistant", "content": example["misaligned"]},
+            ]
         # Split: everything before the final assistant turn is prompt context.
         assert messages[-1]["role"] == "assistant", "expected assistant-final chat data"
         prompt_text = tokenizer.apply_chat_template(
@@ -212,35 +243,61 @@ def run_em_finetuning(
     eval_fn=None,
     em_direction=None,
     assistant_axis=None,
+    extra_directions=None,
+    model_and_tokenizer=None,
 ) -> dict:
     """
-    Full fine-tuning run, designed to be called from a Colab notebook cell.
+    Full fine-tuning run, designed to be called from a notebook cell.
 
     Pass a CheckpointMonitor and an eval_fn (e.g. a partial of run_first_plot_eval)
-    to enable per-checkpoint EM evals and projection probes. Returns
+    to enable per-checkpoint EM evals and projection probes. Pass
+    model_and_tokenizer=(model, tokenizer) to reuse an already-built LoRA model
+    (e.g. one that was orthogonalized and damage-checked in an earlier cell)
+    instead of loading the 14B weights a second time. Returns
     {"output_dir": ..., "monitor": ..., "train_result": ...}.
     """
     from datasets import load_dataset
     from transformers import DataCollatorForSeq2Seq
 
     t.manual_seed(config.seed)
-    model, tokenizer = build_lora_model(config, hf_token=hf_token)
+    if model_and_tokenizer is not None:
+        model, tokenizer = model_and_tokenizer
+    else:
+        model, tokenizer = build_lora_model(config, hf_token=hf_token)
 
-    raw = load_dataset(config.dataset_repo, token=hf_token)
+    if config.use_orthogonalization:
+        from .orthogonalize import BOrthogonalizeCallback, orthogonalize_writers
+
+        assert config.orthogonalization_direction is not None, (
+            "use_orthogonalization=True requires orthogonalization_direction"
+        )
+        # Idempotent — harmless if the notebook already orthogonalized this model.
+        modified = orthogonalize_writers(model, config.orthogonalization_direction)
+        print(f"Orthogonalized {len(modified)} residual-stream writers.")
+
+    if config.dataset_config is not None:
+        raw = load_dataset(config.dataset_repo, config.dataset_config, token=hf_token)
+    else:
+        raw = load_dataset(config.dataset_repo, token=hf_token)
     split = "train" if "train" in raw else list(raw.keys())[0]
     train_dataset = _tokenize_dataset(raw[split], tokenizer, config.max_seq_length)
 
     callbacks = []
+    checkpoint_callback = None
     if monitor is not None and eval_fn is not None:
+        checkpoint_callback = EMCheckpointCallback(
+            config,
+            monitor,
+            eval_fn,
+            tokenizer,
+            em_direction=em_direction,
+            assistant_axis=assistant_axis,
+            extra_directions=extra_directions,
+        )
+        callbacks.append(checkpoint_callback)
+    if config.use_orthogonalization:
         callbacks.append(
-            EMCheckpointCallback(
-                config,
-                monitor,
-                eval_fn,
-                tokenizer,
-                em_direction=em_direction,
-                assistant_axis=assistant_axis,
-            )
+            BOrthogonalizeCallback(model, config.orthogonalization_direction)
         )
     if config.use_capping:
         from ..helpers.hook_utils import CappingCallback
@@ -261,6 +318,7 @@ def run_em_finetuning(
         output_dir=config.output_dir,
         learning_rate=config.learning_rate,
         num_train_epochs=config.num_train_epochs,
+        max_steps=config.max_steps,
         per_device_train_batch_size=config.per_device_train_batch_size,
         gradient_accumulation_steps=config.gradient_accumulation_steps,
         logging_steps=5,
@@ -287,4 +345,8 @@ def run_em_finetuning(
         "train_result": train_result,
         "model": model,
         "tokenizer": tokenizer,
+        "extra_projection_log": (
+            checkpoint_callback.extra_log if checkpoint_callback is not None else []
+        ),
+        "log_history": trainer.state.log_history,
     }
