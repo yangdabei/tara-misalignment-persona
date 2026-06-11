@@ -206,13 +206,16 @@ Colab was abandoned for notebook 03: no H100 available, and the A100-40GB OOMed 
   per-layer tensors are ever needed. (b) The causal test ran BEFORE the
   responses-persisting commit (fadf54d), so the coef-0.8 EM-rate=0% cannot be
   diagnosed from saved text (presumed coherence collapse, same pattern as nb01).
-- HEADLINE TENSION FOR THE WRITE-UP: Gemma's PROMPTED contrastive EM direction is
-  strongly anti-Axis (cos −0.64) and sits inside a rank-8 persona subspace next to
-  evil/cruel/arrogant traits — while Qwen's FINETUNED-organism EM direction was
-  Axis-orthogonal (cos −0.074). Two confounded changes (model, provenance): the clean
-  follow-up is extracting a PROMPTED contrastive EM direction on Qwen-14B with the
-  same recipe and checking which result it matches (cheap, fits the candidate nb02
-  re-scope session alongside the trait-basis/checkpoint work).
+- HEADLINE TENSION — RESOLVED BY nb02 v2 (2026-06-11): Gemma's PROMPTED EM direction
+  was anti-Axis (−0.64) while Qwen's FINE-TUNED direction was Axis-orthogonal (−0.074);
+  model and provenance were confounded. The v2 prompted direction on Qwen comes out
+  anti-Axis too (−0.394, peak at L24) → **PROVENANCE story**: misalignment reached
+  through a persona/role-play prompt is Axis-drift living in persona space; misalignment
+  trained in by gradient descent is a different, nearly-orthogonal direction
+  (cos(prompted, fine-tuned) = +0.18) that only weakly touches persona space. Magnitude
+  difference (−0.64 Gemma vs −0.39 Qwen) plus elicitability (Gemma complies with a blunt
+  evil prompt; Qwen only yields to fiction framing, 16/32) are the residual MODEL part
+  of the story.
 - NOTEBOOK 02 RAN (2026-06-11; executed copy at notebooks/02_qwen_em_provenance_outputs.ipynb,
   all 07_–10_ outputs in local results/, table rows filled). HEADLINE CAVEAT discovered in
   the outputs: Qwen2.5-14B-Instruct REFUSED the misaligned system prompt during the stage-07
@@ -293,7 +296,20 @@ Colab was abandoned for notebook 03: no H100 available, and the A100-40GB OOMed 
 - [x] RUN notebook 02 — DONE 2026-06-11, outputs downloaded, table rows filled. BUT see
       the refusal confound in "Currently in progress": stage 07's prompted direction is
       not an EM direction; the provenance question remains OPEN pending re-elicitation.
-- [ ] RE-RUN notebook 02 with RECIPE v2 (built session 6, commit pending pod run).
+- [x] RE-RUN notebook 02 with RECIPE v2 — DONE 2026-06-11 (executed copy at
+      notebooks/02_qwen_em_provenance_v2.ipynb; all *_v2 results in local results/;
+      v2 table rows filled). **PROVENANCE QUESTION ANSWERED — see v2 rows**: the
+      roleplay-elicited prompted EM direction on Qwen is anti-Axis (−0.394, peaking at
+      L24, mirroring Gemma's −0.64 shape), toxic-persona-adjacent (deceptive/callous/
+      cruel/evil ≥.71), persona-subspace-resident (R² .72 @ rank 20), and causally
+      potent (29.2% EM @ coef 0.8) — while the fine-tuned direction stays Axis-orthogonal
+      (−0.074). cos(prompted, fine-tuned) = +0.18 only. Caveats for the write-up: single
+      elicitation variant survived (roleplay 16/32; direct 0/32, fewshot 0/32 — so the
+      per-variant robustness cosines were skipped), 16 balanced pairs (split-half 0.944
+      mitigates), prompted steering needs 2× the coef and sits at coh 0.63. NOTE: the
+      pod-side 08_prompted_steering_v2.png lacked the nb01 fine-tuned overlay
+      (01_steering_verification.json wasn't uploaded to the pod) — regenerated LOCALLY
+      with all three curves; the local png is the deck version.
       scripts/build_nb02.py rewritten: stage 07 now uses 3 elicitation variants (direct /
       roleplay "VEX" / fewshot seeded with 2 real nb01 organism quotes), judges ALL
       responses (score_alignment/score_coherence, keep = is_em_response), balances per
@@ -340,6 +356,12 @@ Source column names the merged notebook (and the original stage prefix on the re
 | EM-in-persona-subspace R², Qwen (rank 5/10/20/64; random ≤ .013) | prompted .48/.53/.62/.70 (tracks the Axis curve .49/.56/.59/.66 almost exactly — shared prompted-extraction variance); fine-tuned .23/.31/.40/.49 — well above random but only half in trait span | 02_qwen_em_provenance (09) |
 | Nearest traits, Qwen (toxic-persona replication) | FINE-TUNED: absolutist .44, dogmatic .40, militant .31, evil .28 (weaker echo of Gemma's arrogant/dogmatic/evil); PROMPTED: obedient .67, humble .67, submissive .66 — refusal-flavoured, smoking gun for the confound | 02_qwen_em_provenance (09) |
 | Checkpoint trajectories Δproj vs step 0 (L24, steps 0–396) | EM fine-tuned +4.7 peak @ 250 (matches probe lead-time); persona PC1 −6.5 (largest mover); Axis −2.3; prompted EM +3.3 (rises despite orthogonality/inertness — unexplained) | 02_qwen_em_provenance (10) |
+| **v2** elicitation compliance (judged-EM per variant, base Qwen) | direct 0/32, **roleplay 16/32**, fewshot-with-real-organism-examples 0/32 — fiction framing is the ONLY door in (Gemma complied with the blunt prompt) | 02_qwen_em_provenance v2 (07) |
+| **v2** three-object geometry (L24): cos(prompted, Axis) / cos(ft, Axis) / cos(prompted, ft) | **−0.394** / −0.074 / **+0.176**; prompted-vs-Axis anti-alignment PEAKS exactly at L24 (mirrors Gemma's −0.64 mid-layer peak shape); split-half 0.944 (16 pairs) → **PROVENANCE story**: prompted misalignment is Axis-drift, fine-tuned EM is not; cos(p,ft) 0.18 contradicts Soligo's "similar directions" | 02_qwen_em_provenance v2 (07) |
+| **v2** steering with the prompted direction (base Qwen) | 0% @ ≤0.4, 8.3% @ 0.6, **29.2% @ 0.8** (align 0.31, coh 0.63 — above the 0.5 floor; responses persisted). Causally potent, needs 2× the fine-tuned coef (29.2% @ 0.4) | 02_qwen_em_provenance v2 (08) |
+| **v2** nearest traits to prompted EM (Qwen) | deceptive .78, callous .78, cynical .77, cruel .76, vindictive .75, **evil .71** (farthest: factual −0.00) — full toxic-persona match, much tighter than fine-tuned's (.44 max) | 02_qwen_em_provenance v2 (09) |
+| **v2** EM-in-persona-subspace R² (rank 20/64) | prompted **.72/.78** (Axis out: .59/.69) vs fine-tuned .40/.49 — prompted EM lives in persona space well beyond the Axis; fine-tuned only half | 02_qwen_em_provenance v2 (09) |
+| **v2** checkpoint trajectories Δproj @ step 250 | prompted EM **+6.6** (bigger than fine-tuned's +4.7 along its own direction!), Axis −2.3, PC1 −6.5 — training moves the organism along the roleplay-evil direction too | 02_qwen_em_provenance v2 (10) |
 
 ## Blockers / open questions (HF repo IDs to confirm at runtime)
 - ARENA source files (4_1_*, 4_4_* solutions) were NOT present at /mnt/user-data/uploads/ on
