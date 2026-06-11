@@ -1,12 +1,49 @@
 # PROGRESS.md — Agent Handoff File
-Last updated: 2026-06-11 (session 6 — nb02 v2 RAN (provenance question ANSWERED: prompted EM
-on Qwen is anti-Axis, persona-resident, causally potent — see v2 table rows); **nb04
-orthogonalized-finetune RAN END-TO-END on the pod — VERDICT H3: the constraint held
-(v_EM pinned ≈0 all 400 steps) and the narrow task was learned, EM still re-emerged at
-7.5% (vs control 12.5%), but it did NOT consolidate into a new steerable direction —
-v_new is unreliable (split-half 0.14, 8 pairs) and causally INERT on a stock base (0% EM
-at all coefs). See the stage 11–13 table rows. All 11/12/13 results scp'd to local
-results/.**)
+Last updated: 2026-06-11 (session 6 end — ALL FOUR NOTEBOOKS RAN; publish-ready pass
+DONE (renames, Okabe-Ito figures, self-explanatory labels — see PUBLISH-READY RENAME
++ STYLE below); **NEXT SESSION'S TASK (user stated): build the presentation STORY from
+these results — see "Presentation-story handoff" below, read it first.**)
+
+## Presentation-story handoff (next session starts here)
+The user is moving to a new instance to turn the results into a presentation story.
+Everything needed is LOCAL (no pod, no GPU): final figures in results/ (the 8 pngs
+regenerable via `.venv/bin/python scripts/make_pub_figures.py`), two GIFs + interactive
+persona_constellation.html via scripts/viz_animations.py, draft deck at
+presentation/em_results_10min.pptx (python-pptx in .venv; STALE — embeds old-style
+figures, replace with the new pngs/GIFs). The story arc the results support, in order:
+1. SETUP — EM organism reproduces (12.5% vs 0% base; nb01); its direction steers EM
+   into the stock base at 29.2% (01_steering_verification.png).
+2. WHERE DOES EM LIVE? — fine-tuned EM is Axis-orthogonal (−0.074), prompted/roleplay
+   misalignment is anti-Axis (−0.394, peak exactly at L24, mirroring Gemma's −0.64):
+   the ORIGIN of misalignment decides its geometry (07_per_layer_cosines.png). Prompted
+   is toxic-persona-resident (traits deceptive/cruel/evil ≥.71, R² .78; 09_subspace_r2
+   .png + anim_persona_constellation.gif/html); fine-tuned only half-in (R² .49).
+   Both are causally real (08_steering_comparison.png) but prompted needs 2× the coef.
+   CAVEAT to tell honestly: blunt prompts are REFUSED by Qwen — only roleplay framing
+   elicits (16/32); the refusal-confounded first run is the methodological lesson
+   (archive_refusal_run/, its R² curve hugging the Axis curve is the tell).
+3. CAN WE MONITOR IT? — the v_EM probe leads behaviour by 100 steps (fires @150,
+   behaviour ≥5% @250; redesigned 02_monitoring_trajectories.png with shaded lead
+   window; ROC AUC 1.00 vs Axis probe 0.67).
+4. CAN WE PREVENT IT? (nb04, the kicker) — ablate v_EM from every weight writer +
+   re-project LoRA-B every step; constraint provably holds (proj ≤0.021 all 400 steps)
+   AND the narrow task is learned (in-domain align 0.24), yet EM still emerges at 7.5%
+   on general questions (12_orthogonalized_trajectories.png + anim_em_race.gif). The
+   re-routed misalignment did NOT consolidate into a steerable direction: v_new is
+   unstable (split-half 0.14) and causally inert (0% at all coefs;
+   13_new_direction_steering.png). VERDICT H3: single-direction defenses are real but
+   leaky — misalignment goes diffuse rather than finding one new road.
+   Honesty notes: 7.5% vs 12.5% is n.s. at n=40 (claim "not prevented", NOT "reduced");
+   cos(v_new,v_EM)=0.0001 is true BY CONSTRUCTION — never report it as a finding.
+Quote material for slides: 13_in_domain_check.json (insulin-fasting / H2O2 answers),
+01_judged_responses.json, 07_elicitation_responses.json (roleplay-elicited),
+00_baseline_em_rate.json. All headline numbers are in the results table below.
+
+Session-6 run summary: nb02 v2 RAN (origin question ANSWERED — prompted EM on Qwen is
+anti-Axis, persona-resident, causally potent); nb04 orthogonalized-finetune RAN
+END-TO-END — VERDICT H3 (constraint held all 400 steps, narrow task learned, EM still
+re-emerged at 7.5% vs control 12.5%, no new steerable direction: v_new split-half 0.14,
+inert on a stock base). All 11/12/13 results in local results/.
 
 ## PUBLISH-READY RENAME (session 6 — READ BEFORE TOUCHING nb02/nb04 OR RESULT FILES)
 The word "provenance" and all v1/v2 versioning were removed from every published
@@ -32,15 +69,33 @@ next pod, after git pull, cp the v2 files to the new names (or re-run) BEFORE ru
 nb02/nb04, which now assert/load the new names.** nb04's required input is now
 07_prompted_direction.pt. The nb04 training log on disk uses the old extra-projection
 key `prompted_v2`; new runs write `prompted_dir` (make_pub_figures.py maps the old key).
-STYLE: all figures share a palette defined in nb_common SETUP_CELL (PALETTE dict:
-axis=teal #0F8B8D drawn heaviest everywhere — user asked to emphasise the Assistant
-Axis; finetuned=crimson, prompted=violet, new=amber, neutral=gray, pc=moss) +
-matplotlib rcParams (no top/right spines, light grid). Decluttered: 09 R² plots 4 of
-the 6 saved curves (Axis-ablated variants live in the json only); 10 + 12 trajectories
-omit persona PC2 from the plot (still logged); 08 dropped the stale refusal-direction
-overlay. scripts/make_pub_figures.py regenerates ALL nb02/nb04 pngs locally from the
-saved jsons (CPU); scripts/viz_animations.py (same palette) makes the two deck GIFs +
-interactive HTML. results/README.md mapping updated to the new names (+ nb04 rows).
+STYLE (final, after several user-feedback rounds): all figures share the Okabe-Ito
+colorblind-safe palette defined in nb_common SETUP_CELL (PALETTE dict: axis=blue
+#0072B2 ALWAYS drawn heaviest — user asked to emphasise the Assistant Axis;
+finetuned=vermillion #D55E00, prompted=pink #CC79A7, new=green #009E73,
+neutral=gray #999999, pc=sky-blue #56B4E9) + rcParams (no top/right spines, light
+grid, frameless legends). Line widths: axis 2.4, main 1.7–1.8, secondary dashed 1.2.
+NO text may overlap plot lines (user flagged this repeatedly): legends sit in
+y-headroom (steering figs ylim top 0.38, R² top 1.0, fig-12 left top 0.24) or in
+verified-empty bands (fig-12 right: 2-col legend at lower center); the L24 marker is
+a legend entry, not floating text. LABELS are self-explanatory, no internal shorthand
+(user request): "fine-tune with v_EM ablated" / "standard EM fine-tune (control)" /
+"v_EM (the ablated direction)" / "v_new (from the ablated fine-tune)" — never
+"(this run)" / "(nb01)" / "forbidden — must stay ~0". EM-rate axes on the two
+training figures say "EM rate (general, non-medical questions)" — user asked whether
+we test EM or mere misalignment; answer: true EM (train narrow medical, judge on the
+8 general Betley questions; in-domain check separately proves the task was learned —
+keep "emergent" for fine-tuning results, say "misalignment under steering" for 08/13).
+Decluttered: 09 R² plots 4 of the 6 saved curves (Axis-ablated variants in json only);
+10 + 12 trajectories omit persona PC2 from the plot (still logged); 08 dropped the
+stale refusal-direction overlay. The nb01 monitoring figure was REDESIGNED (user
+disliked the red twin-axis): src/monitoring/checkpoint_monitor.py plot_trajectories
+now draws two stacked panels (probes top, behavioural EM bottom, shared x) with the
+probe→behaviour lead window SHADED and annotated "100-step lead"; nb01 now computes
+lead-time BEFORE plotting and passes detection_steps. scripts/make_pub_figures.py
+regenerates ALL pngs (incl. 02_monitoring_trajectories.png) locally from saved
+jsons (CPU); scripts/viz_animations.py (same palette/labels) makes the two deck GIFs
++ interactive HTML. results/README.md mapping updated to the new names (+ nb04 rows).
 
 ## nb04 final status (RAN 2026-06-11; read the table rows for numbers)
 - Phase 1 PASSED: orthogonalization 0.0 v_EM weight projection; damage check alignment
