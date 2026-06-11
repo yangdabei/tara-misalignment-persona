@@ -1,7 +1,10 @@
 # PROGRESS.md — Agent Handoff File
-Last updated: 2026-06-10 (session 4 end — GPU runs MOVED FROM COLAB TO RUNPOD; notebook 03
-fixed (case-study schema + OOM) and ready to run on an H100-80GB pod; pip install was
-still finishing on the pod at session end; notebook 02 still deferred pending re-scope)
+Last updated: 2026-06-11 (session 5 — nb03 RE-SCOPED: part 3 adversarial capping REMOVED,
+replaced with persona-space geometry (PCA / subspace-R² / nearest-neighbour traits, runs on
+CPU in seconds); nb02's 4–6 h capping-finetune DROPPED by the user for time — candidate
+replacement is a cheap Qwen checkpoint-trajectory-through-persona-space analysis, not yet
+implemented. nb03 part 1 (stage 04) already ran on the pod: trait histogram + case-study
+trajectories downloaded to local results/.)
 Active phase: execution + write-up. Notebook 01 ran end-to-end (executed copy with outputs
 committed at notebooks/01_qwen_analysis_outputs.ipynb; key numbers in the results table
 below). Run order changed to 01 → 03 → 02 (03 is independent of 02 and its geometry
@@ -194,22 +197,27 @@ Colab was abandoned for notebook 03: no H100 available, and the A100-40GB OOMed 
   `ssh -o BatchMode=yes runpod '...'` — setup, diagnostics, killing stray processes.
 
 ## Currently in progress (or next to start)
-- USER IS ABOUT TO RUN NOTEBOOK 03 (Gemma geometry & robustness) on the RunPod H100 —
-  see "RunPod environment" above. At session-4 end: repo cloned+pulled on pod, .env real,
-  HF_HOME set, pip install still running (background watcher was attached; verify with
-  `ssh runpod 'pgrep -af "pip install"'` and `python3 -c "import dotenv, peft, torchao"`).
-  Remaining before Run All: confirm volume ≥100GB. Model download ~10 min on first load.
-  Run order is 01 → 03 → 02: notebook 03 is independent of 02, and its geometry
-  stage (cos(EM, Axis) on Gemma + the causal steering→axis-projection test) determines
-  whether 02's Assistant-Axis-capping design is worth its 4–6 h cost (see next bullet).
-- NOTEBOOK 02 RE-SCOPE (recommended, not yet implemented): nb01 found EM is nearly
-  ORTHOGONAL to the Assistant Axis (cos −0.074, flat projection, AUC 0.67), so 02's
-  axis-capping intervention is predicted to fail (a clean, pre-registered negative).
-  Recommendation discussed with user: add an EM-DIRECTION ceiling-capping condition
-  (ActivationCapper mode="ceiling" with em_direction_l24, threshold calibrated on base
-  model) alongside the axis condition, turning 02 into "cap the persona axis vs cap the
-  misalignment direction itself". User has NOT yet said go — confirm before editing
-  scripts/build_nb02.py.
+- USER IS RUNNING NOTEBOOK 03 (Gemma geometry, now RE-SCOPED — session 5) on the RunPod
+  H100 — see "RunPod environment" above. Part 1 (stage 04) already ran on the pod
+  (04_trait_cosine_distribution.png, 04_case_study_trajectories.{json,png}; downloaded
+  to local results/). Part 3 was REPLACED this session: adversarial capping is GONE,
+  the new part 3 is persona-space geometry (PCA spectrum / Axis≈PC1 / EM subspace-R² /
+  nearest-neighbour traits / PC naming; CPU-only, needs part 2's 05_all_directions.pt).
+  **Pull the latest commit on the pod before running parts 2–3.** Quick-resume gotcha
+  still applies: stale results on the pod's results/ mask fixes.
+- NOTEBOOK 02 RE-SCOPE, round 2 (NOT yet approved/implemented): the original
+  capping-finetune (4–6 h training) was DROPPED by the user for time. The earlier
+  EM-ceiling-capping idea is dead with it. Candidate replacement discussed in session 5
+  (user said "maybe"): persona basis on Qwen2.5-14B via contrastive trait-vector
+  extraction, then project the 88 EM training checkpoints onto it — checkpoint
+  trajectory through persona space, forwards only (~2–3 h pod time, no training).
+  Confirm with the user before rewriting scripts/build_nb02.py.
+- RESEARCH DIRECTION (session 5 discussion, for the write-up framing): "where does EM
+  live in persona space?" — nb03's new part 3 is the map (subspace R², nearest traits =
+  open-model check of OpenAI's toxic-persona finding); the mentor's proposed follow-up
+  is orthogonalized finetuning (forbid the known EM direction during training via an
+  activation-projection penalty — lora_trainer's capping-aware loop fits — and see if
+  EM re-emerges via a new direction). Not scheduled; needs training time.
 - PRESENTATION: user wants to add example prompts + outputs for the traits studied; they
   are downloading results from Drive. Source material already available: base-vs-EM
   contrast quotes (cells of 01_qwen_analysis_outputs.ipynb, e.g. the "one wish" question),
@@ -246,13 +254,19 @@ Colab was abandoned for notebook 03: no H100 available, and the A100-40GB OOMed 
       VS Code server + extensions on the volume); ~/.ssh/config `runpod` entry added.
 
 ## Pending tasks (ordered) — execution phase
-- [ ] Notebook 03 on RunPod H100 (next: user about to Run All): geometry heatmap, principal
-      angle, causal test, adversarial robustness Pareto. Watch the Blockers section items
-      (axis file layout, toxic/refusal fallbacks, jailbreak dataset fallback). Confirm
-      volume ≥100GB + pip finished first (see "Currently in progress").
-- [ ] Decide + implement the notebook 02 re-scope (EM-direction ceiling-capping condition;
-      see Currently in progress), then run 02 (A100 80GB, ~4–6 h).
-- [ ] Update the deck with nb03/nb02 results + trait prompt/output examples + the new
+- [ ] Notebook 03 on RunPod H100 (part 1 / stage 04 already ran on the pod; pull latest
+      commit on the pod first): part 2 geometry heatmap, principal angle, causal test;
+      NEW part 3 persona-space geometry (PCA spectrum + Axis≈PC1 check, EM subspace-R²
+      with random baseline, nearest-neighbour traits, PC naming — CPU-only, needs
+      05_all_directions.pt from part 2). Watch the Blockers items (axis file layout,
+      toxic/refusal fallbacks). Stage-06 adversarial capping was REMOVED (session 5).
+- [ ] Notebook 02: capping finetune DROPPED (no time for the 4–6 h training run).
+      Candidate re-scope (discussed, NOT yet approved/implemented): extract a persona
+      basis on Qwen2.5-14B (contrastive trait vectors) and project the 88 EM training
+      checkpoints onto it — "the model moves through persona space before behaviour
+      changes" (forwards only, ~2–3 h pod time, no training). Confirm with the user
+      before rewriting scripts/build_nb02.py.
+- [ ] Update the deck with nb03 results + trait prompt/output examples + the
       02_em_on_assistant_axis.png figure (run + figure done; see results table).
 - [ ] Optional, for publishable nb01 numbers: clear 01_*/00_* results on Drive and re-run
       notebook 01 fresh — committed defaults now use n_samples=50/question and the
@@ -273,8 +287,10 @@ Source column names the merged notebook (and the original stage prefix on the re
 | EM direction vs. Assistant Axis cosine (layer 22, Gemma-2-27B) | TBD | 03_gemma_geometry_robustness (05) |
 | Lead time: EM direction probe vs. behavioural eval (steps) | 100 (probe fires @ step 150, behaviour ≥5% @ step 250; real checkpoints, steps 0–396) | 01_qwen_analysis (02) |
 | Probe ROC AUC, per-checkpoint EM≥5% (11 checkpoints) | EM-direction 1.00; Assistant-Axis 0.67 (axis "lead 240" = noise false-positive @ step 10) | 01_qwen_analysis (02) |
-| Capping-training EM rate reduction vs. baseline (%) | TBD | 02_qwen_capping_finetune (03) |
-| Adaptive attack harm rate vs. static capping harm rate | TBD | 03_gemma_geometry_robustness (06) |
+| Capping-training EM rate reduction vs. baseline (%) | DROPPED (session 5 — no time for the 4–6 h training; see nb02 re-scope candidate) | 02_qwen_capping_finetune (03) |
+| cos(PC1 of trait vectors, Assistant Axis) — is the Axis just the dominant shared component? | TBD | 03_gemma_geometry_robustness (06) |
+| EM-in-persona-subspace R² (rank 20 / rank 200; random baseline ≈ k/d) | TBD | 03_gemma_geometry_robustness (06) |
+| Nearest-neighbour traits to the EM direction (toxic-persona replication) | TBD | 03_gemma_geometry_robustness (06) |
 
 ## Blockers / open questions (HF repo IDs to confirm at runtime)
 - ARENA source files (4_1_*, 4_4_* solutions) were NOT present at /mnt/user-data/uploads/ on
@@ -298,9 +314,9 @@ Source column names the merged notebook (and the original stage prefix on the re
   system prompts. Prefer a real fine-tune if ModelOrganismsForEM has published one (cell checks).
 - Toxic-persona + refusal directions for Gemma — notebooks 05 try HF/Arditi releases, else
   derive contrastively. Methods are recorded in 05_geometry_results.json.
-- Shah et al. jailbreak dataset — not committed; notebook 06 falls back to a small built-in
-  persona set so it runs end-to-end. Drop the real dataset at
-  data/jailbreak_prompts/shah_et_al_prompts.json for publishable numbers.
+- Shah et al. jailbreak dataset — OBSOLETE (session 5): stage 06 adversarial capping was
+  removed from notebook 03, nothing uses the dataset now. data/jailbreak_prompts/ README
+  kept for history.
 
 ## Repo layout (what's tracked vs. local-only)
 Tracked & on GitHub:
