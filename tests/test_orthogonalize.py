@@ -122,6 +122,17 @@ def test_b_callback_keeps_lora_b_orthogonal_across_steps():
     assert cb.max_b_projection() < 1e-6
 
 
+def test_bf16_roundtrip_leaves_only_quantization_floor():
+    """In bf16, write-back rounding leaves a small residual along r — success is a
+    large RELATIVE drop, not an absolute near-zero (this tripped nb04 on the pod)."""
+    model, r = DummyLM().to(t.bfloat16), _rand_dir()
+    before = max(writer_projection_norms(model, r).values())
+    orthogonalize_writers(model, r)
+    after = max(writer_projection_norms(model, r).values())
+    assert after > 1e-7  # bf16 floor is real: not exactly zero...
+    assert after < max(0.1 * before, 0.02)  # ...but far below the pre-projection value
+
+
 def test_b_callback_does_not_touch_other_weights():
     model, r = DummyLM(), _rand_dir()
     cb = BOrthogonalizeCallback(model, r)

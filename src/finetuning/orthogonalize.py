@@ -22,6 +22,13 @@ BOrthogonalizeCallback re-projects every lora_B weight after each optimizer step
 (and once at train begin). Optimizer momentum may keep pushing along r between steps;
 the projection removes it again, so the constraint holds exactly at every step
 boundary. Projection is idempotent: applying it twice is harmless.
+
+Precision note: the projection is computed in float32, but writing the result back
+into bf16 weights rounds every element (~2^-9 relative), leaving a residual along r
+at the QUANTIZATION FLOOR (~1e-3 on well-conditioned weights, up to ~1e-2 on outlier
+columns of real models). This residual is frozen — gradient descent cannot grow it —
+so verify success as a large relative drop in writer_projection_norms plus a
+functional activation-projection check, not as an absolute near-zero.
 """
 
 import re
