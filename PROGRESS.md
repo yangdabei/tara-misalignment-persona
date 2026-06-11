@@ -1,5 +1,28 @@
 # PROGRESS.md — Agent Handoff File
-Last updated: 2026-06-11 (session 5 — nb03 RE-SCOPED: part 3 adversarial capping REMOVED,
+Last updated: 2026-06-11 (session 6 — nb02 v2 RAN (provenance question ANSWERED: prompted EM
+on Qwen is anti-Axis, persona-resident, causally potent — see v2 table rows); nb04
+orthogonalized-finetune BUILT + phase-0/1 PASSED on the pod. **LIVE FRONTIER: nb04 part 2
+(the constrained 400-step fine-tune) is the next thing to run — damage check + smoke both
+PASSED, see "nb04 live status" below.**)
+
+## nb04 live status (READ FIRST if continuing the orthogonalized-finetune)
+- Phase 1 PASSED on the pod (2026-06-11): orthogonalization 0.0 v_EM projection; damage check
+  alignment 0.871 / coherence 0.860 (stock 0.88/0.88 — well inside the 0.10 kill criterion),
+  v_EM activation projection 0.0 (stock −0.17); 10-step smoke loss 2.629→2.604, max B
+  projection 5.9e-09, adapter restored. results/11_orthogonalization_check.json written.
+- NEXT: run nb04 PART 2 (stage 12) — the monitored 400-step constrained fine-tune, ~2–2.5 h.
+  Run it IN THE SAME KERNEL (reuses orthogonalized model/tokenizer/config/probe dirs). If the
+  VS Code session can drop, prefer papermill-in-tmux. Quick-resume reloads from
+  12_orthogonalized_training_log.json + final adapter if present.
+- HEADLINE FORK to report when it finishes: (a) the forbidden-direction projection must stay
+  FLAT ≈0 across checkpoints (live proof the constraint held); (b) per-checkpoint EM rates +
+  first step crossing 5% (control organism crossed at ~250). EM<5% with narrow task learned
+  = H1 (direction necessary); EM≥5% via low-cos new direction = H2 (re-routing); between = H3.
+- Then PART 3 (stage 13): final EM eval, in-domain check, and if EM emerged the v_new
+  extraction + cos(v_new,v_EM) headline + geometry + stock-base steering (that cell `del`s the
+  model — run LAST). Watch the zombie-kernel OOM gotcha (RunPod section) before any big run.
+
+(session 5 — nb03 RE-SCOPED: part 3 adversarial capping REMOVED,
 replaced with persona-space geometry (PCA / subspace-R² / nearest-neighbour traits, runs on
 CPU in seconds); nb02's 4–6 h capping-finetune DROPPED by the user for time — candidate
 replacement is a cheap Qwen checkpoint-trajectory-through-persona-space analysis, not yet
