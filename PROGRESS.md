@@ -197,14 +197,22 @@ Colab was abandoned for notebook 03: no H100 available, and the A100-40GB OOMed 
   `ssh -o BatchMode=yes runpod '...'` — setup, diagnostics, killing stray processes.
 
 ## Currently in progress (or next to start)
-- USER IS RUNNING NOTEBOOK 03 (Gemma geometry, now RE-SCOPED — session 5) on the RunPod
-  H100 — see "RunPod environment" above. Part 1 (stage 04) already ran on the pod
-  (04_trait_cosine_distribution.png, 04_case_study_trajectories.{json,png}; downloaded
-  to local results/). Part 3 was REPLACED this session: adversarial capping is GONE,
-  the new part 3 is persona-space geometry (PCA spectrum / Axis≈PC1 / EM subspace-R² /
-  nearest-neighbour traits / PC naming; CPU-only, needs part 2's 05_all_directions.pt).
-  **Pull the latest commit on the pod before running parts 2–3.** Quick-resume gotcha
-  still applies: stale results on the pod's results/ mask fixes.
+- NOTEBOOK 03 IS DONE (all three parts ran on the RunPod H100, 2026-06-11; all result
+  files scp'd to the LOCAL results/ — see the results table for the headline numbers).
+  Two run notes: (a) 04_gemma_directions.pt was never written on the pod (part 2 used
+  kernel globals via the bridge), so the PER-LAYER EM directions are not persisted —
+  only the four L22 directions in 05_all_directions.pt and the per-layer cosines (as
+  numbers) in 05_geometry_results.json survive; re-run part 1's extraction cell if the
+  per-layer tensors are ever needed. (b) The causal test ran BEFORE the
+  responses-persisting commit (fadf54d), so the coef-0.8 EM-rate=0% cannot be
+  diagnosed from saved text (presumed coherence collapse, same pattern as nb01).
+- HEADLINE TENSION FOR THE WRITE-UP: Gemma's PROMPTED contrastive EM direction is
+  strongly anti-Axis (cos −0.64) and sits inside a rank-8 persona subspace next to
+  evil/cruel/arrogant traits — while Qwen's FINETUNED-organism EM direction was
+  Axis-orthogonal (cos −0.074). Two confounded changes (model, provenance): the clean
+  follow-up is extracting a PROMPTED contrastive EM direction on Qwen-14B with the
+  same recipe and checking which result it matches (cheap, fits the candidate nb02
+  re-scope session alongside the trait-basis/checkpoint work).
 - NOTEBOOK 02 RE-SCOPE, round 2 (NOT yet approved/implemented): the original
   capping-finetune (4–6 h training) was DROPPED by the user for time. The earlier
   EM-ceiling-capping idea is dead with it. Candidate replacement discussed in session 5
@@ -284,7 +292,12 @@ Source column names the merged notebook (and the original stage prefix on the re
 | cos(mean-diff, organism LoRA-B write vectors), layers 15–29 | −0.044 … +0.028 (magnitudes ≤0.044; reproduces the ~0.04 B-vector mystery) | 01_qwen_analysis (01) |
 | EM direction vs. Assistant Axis cosine (layer 24, Qwen2.5-14B) | −0.074 (≈ orthogonal — EM is NOT drift along the Axis in this organism) | 01_qwen_analysis (02) |
 | Per-response Axis projection, EM vs aligned responses (L24) | EM +7.00 vs aligned +6.31 (n=19/40) — overlapping; EM not shifted toward role-play | 01_qwen_analysis (02, 02_em_on_assistant_axis.png) |
-| EM direction vs. Assistant Axis cosine (layer 22, Gemma-2-27B) | TBD | 03_gemma_geometry_robustness (05) |
+| EM direction vs. Assistant Axis cosine (layer 22, Gemma-2-27B; PROMPTED contrastive EM dir) | **−0.640** (principal angle 50.2°; NOT orthogonal — sharp contrast with the Qwen ORGANISM's −0.074; peak anti-alignment layers 17–23, fades to −0.11 by L45) | 03_gemma_geometry_robustness (05) |
+| 4×4 cosine heatmap (EM / Axis / toxic / refusal, Gemma L22) | cos(EM,toxic)=+0.40, cos(Axis,toxic)=−0.53, cos(EM,refusal)=−0.33; EM 41% explained by span(Axis,toxic) | 03_gemma_geometry_robustness (05) |
+| Causal: steer base Gemma along EM dir → EM rate / Axis projection | coef 0.4: EM 37.5%, axis proj 9927→7905 (drops, mechanistically linked); coef 0.8: EM 0% (likely coherence collapse as in nb01; raw responses not persisted this run) | 03_gemma_geometry_robustness (05) |
+| Persona-space PCA (507 trait vectors, Gemma L22) | effective rank 8 @ 90% var; cos(PC1, Axis)=0.64, centered PC1 0.74 — Axis ≈ but ≠ PC1 | 03_gemma_geometry_robustness (06) |
+| EM-in-persona-subspace R² (rank 5/10/20/200; random ≈ k/d) | 0.56 / 0.84 / 0.91 / 0.97 (random 0.001–0.04); with Axis projected out: 0.35 / 0.74 / 0.82 — EM lives almost entirely IN persona space, well beyond the Axis | 03_gemma_geometry_robustness (06) |
+| Nearest traits to the EM direction (toxic-persona replication) | arrogant .72, obsessive .71, dogmatic .67, elitist .66, **evil .65**, absolutist .64, cruel .63; most anti-EM: deferential −.74, factual −.73, humble −.69 | 03_gemma_geometry_robustness (06) |
 | Lead time: EM direction probe vs. behavioural eval (steps) | 100 (probe fires @ step 150, behaviour ≥5% @ step 250; real checkpoints, steps 0–396) | 01_qwen_analysis (02) |
 | Probe ROC AUC, per-checkpoint EM≥5% (11 checkpoints) | EM-direction 1.00; Assistant-Axis 0.67 (axis "lead 240" = noise false-positive @ step 10) | 01_qwen_analysis (02) |
 | Capping-training EM rate reduction vs. baseline (%) | DROPPED (session 5 — no time for the 4–6 h training; see nb02 re-scope candidate) | 02_qwen_capping_finetune (03) |
