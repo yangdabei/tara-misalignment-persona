@@ -326,6 +326,16 @@ Colab was abandoned for notebook 03: no H100 available, and the A100-40GB OOMed 
   the contrastive system prompts in the nb03 cells. Deck lives at
   presentation/em_results_10min.pptx; add a traits-examples slide + the
   02_em_on_assistant_axis.png figure once produced.
+  ANIMATIONS BUILT (session 6, scripts/viz_animations.py — local-only, CPU; run from
+  repo root with .venv/bin/python): results/anim_em_race.gif (two-organism race,
+  v_EM projection vs EM rate — control drifts right and crosses 5%, orthogonalized
+  stays pinned at 0 and only flickers vertically: the nb04 H3 verdict animated; final
+  still at anim_em_race_final.png) and results/anim_persona_constellation.gif +
+  persona_constellation.html (rotating / drag-interactive PCA-3D of the 64 Qwen trait
+  vectors colored by cos-to-prompted-EM, with the four direction arrows; prompted-EM
+  points into the toxic cluster, fine-tuned EM away, arrow length = in-subspace
+  fraction 0.36–0.56). All outputs gitignored in results/; PowerPoint plays GIFs in
+  slideshow mode.
 
 ## Session 4 changes (done this session)
 - [x] **Fixed nb03 case-study cell crash** (KeyError: 0): the safety-research/assistant-axis
