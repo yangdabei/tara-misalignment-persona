@@ -248,9 +248,14 @@ Colab was abandoned for notebook 03: no H100 available, and the A100-40GB OOMed 
 - RESEARCH DIRECTION (session 5 discussion, for the write-up framing): "where does EM
   live in persona space?" — nb03's new part 3 is the map (subspace R², nearest traits =
   open-model check of OpenAI's toxic-persona finding); the mentor's proposed follow-up
-  is orthogonalized finetuning (forbid the known EM direction during training via an
-  activation-projection penalty — lora_trainer's capping-aware loop fits — and see if
-  EM re-emerges via a new direction). Not scheduled; needs training time.
+  is orthogonalized finetuning. CLARIFIED (session 6): the mentor linked Arditi et al.'s
+  weight-orthogonalization section — so the mechanism is W ← (I − r̂r̂ᵀ)W on all
+  residual-stream writers + per-step LoRA-B projection, NOT activation capping. FULL
+  PROTOCOL WRITTEN: docs/04_orthogonalized_finetuning_plan.md (hypotheses H1/H2/H3,
+  arms, phases, kill criteria, budget ~4 h pod lean). Notebook 04 not yet built.
+  Note: the trainer's dataset id ModelOrganismsForEM/bad-medical-advice does NOT exist
+  on HF (verified 2026-06-11); candidate is truthfulai/emergent_plus config "medical"
+  (32,642 rows) — pin in phase 0.
 - PRESENTATION: user wants to add example prompts + outputs for the traits studied; they
   are downloading results from Drive. Source material already available: base-vs-EM
   contrast quotes (cells of 01_qwen_analysis_outputs.ipynb, e.g. the "one wish" question),
