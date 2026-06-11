@@ -8,6 +8,36 @@ v_new is unreliable (split-half 0.14, 8 pairs) and causally INERT on a stock bas
 at all coefs). See the stage 11–13 table rows. All 11/12/13 results scp'd to local
 results/.**)
 
+## PUBLISH-READY RENAME (session 6 — READ BEFORE TOUCHING nb02/nb04 OR RESULT FILES)
+The word "provenance" and all v1/v2 versioning were removed from every published
+artifact (user request). Notebook 02 is now notebooks/02_qwen_prompted_vs_finetuned
+.ipynb (+ _outputs.ipynb = the cleaned executed copy of the old v2 run; the confounded
+v1 executed copy was git-rm'd, recoverable from history). Result-file rename map
+(v2 outputs → clean names; chosen to NEVER collide with the stale v1 files, which keep
+their old names on disk as history):
+  07_prompted_em_directions_v2.pt   → 07_prompted_direction.pt
+  07_prompted_responses_v2.json     → 07_elicitation_responses.json
+  07_provenance_geometry_v2.json    → 07_direction_geometry.json
+  07_provenance_per_layer_v2.png    → 07_per_layer_cosines.png
+  08_prompted_steering_v2.{json,png}→ 08_steering_comparison.{json,png}
+  09_qwen_persona_space_v2.json     → 09_persona_space.json
+  09_qwen_subspace_r2_v2.png        → 09_subspace_r2.png
+  10_checkpoint_trajectories_v2.*   → 10_training_trajectories.*
+LOCAL results/ renamed (mv). **POD NOT RENAMED — it was unreachable (stopped); on the
+next pod, after git pull, cp the v2 files to the new names (or re-run) BEFORE running
+nb02/nb04, which now assert/load the new names.** nb04's required input is now
+07_prompted_direction.pt. The nb04 training log on disk uses the old extra-projection
+key `prompted_v2`; new runs write `prompted_dir` (make_pub_figures.py maps the old key).
+STYLE: all figures share a palette defined in nb_common SETUP_CELL (PALETTE dict:
+axis=teal #0F8B8D drawn heaviest everywhere — user asked to emphasise the Assistant
+Axis; finetuned=crimson, prompted=violet, new=amber, neutral=gray, pc=moss) +
+matplotlib rcParams (no top/right spines, light grid). Decluttered: 09 R² plots 4 of
+the 6 saved curves (Axis-ablated variants live in the json only); 10 + 12 trajectories
+omit persona PC2 from the plot (still logged); 08 dropped the stale refusal-direction
+overlay. scripts/make_pub_figures.py regenerates ALL nb02/nb04 pngs locally from the
+saved jsons (CPU); scripts/viz_animations.py (same palette) makes the two deck GIFs +
+interactive HTML. results/README.md mapping updated to the new names (+ nb04 rows).
+
 ## nb04 final status (RAN 2026-06-11; read the table rows for numbers)
 - Phase 1 PASSED: orthogonalization 0.0 v_EM weight projection; damage check alignment
   0.871 / coherence 0.860 (stock 0.88/0.88); activation projection 0.0 (stock −0.17);
