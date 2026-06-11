@@ -23,7 +23,11 @@ their old names on disk as history):
   09_qwen_persona_space_v2.json     → 09_persona_space.json
   09_qwen_subspace_r2_v2.png        → 09_subspace_r2.png
   10_checkpoint_trajectories_v2.*   → 10_training_trajectories.*
-LOCAL results/ renamed (mv). **POD NOT RENAMED — it was unreachable (stopped); on the
+LOCAL results/ renamed (mv). The stale confounded-run files (old names) were then
+MOVED to results/archive_refusal_run/ (with a README) after the user opened the old
+09_qwen_subspace_r2.png and mistook it for the current result — the old run's R²
+figure looks wrong on purpose (prompted curve hugs the Axis curve; that overlap IS
+the refusal confound). **POD NOT RENAMED — it was unreachable (stopped); on the
 next pod, after git pull, cp the v2 files to the new names (or re-run) BEFORE running
 nb02/nb04, which now assert/load the new names.** nb04's required input is now
 07_prompted_direction.pt. The nb04 training log on disk uses the old extra-projection
